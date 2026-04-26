@@ -6,18 +6,18 @@ import (
 
 	"go.uber.org/zap"
 
-	"meeting-service/internal/repository/postgres"
+	"meeting-service/internal/service"
 )
 
-type RegisterHandler struct {
-	userRepo *postgres.UserRepository
-	logger   *zap.Logger
+type UserHandler struct {
+	userService *service.UserService
+	logger      *zap.Logger
 }
 
-func NewRegisterHandler(userRepo *postgres.UserRepository, logger *zap.Logger) *RegisterHandler {
-	return &RegisterHandler{
-		userRepo: userRepo,
-		logger:   logger,
+func NewUserHandler(userService *service.UserService, logger *zap.Logger) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+		logger:      logger,
 	}
 }
 
@@ -33,14 +33,13 @@ type registerResponse struct {
 	Role  string `json:"role"`
 }
 
-func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var req registerRequest
-
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
@@ -51,19 +50,19 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Role == "" {
-		req.Role = "employee"
-	}
-
-	if req.Role != "admin" && req.Role != "organizer" && req.Role != "employee" {
-		http.Error(w, "invalid role", http.StatusBadRequest)
-		return
-	}
-
-	user, err := h.userRepo.Create(req.Email, req.Password, req.Role)
+	user, err := h.userService.Register(service.RegisterUserRequest{
+		Email:    req.Email,
+		Password: req.Password,
+		Role:     req.Role,
+	})
 	if err != nil {
-		h.logger.Error("failed to create user", zap.Error(err))
-		http.Error(w, "failed to create user", http.StatusInternalServerError)
+		if err == service.ErrInvalidRole {
+			http.Error(w, "invalid role", http.StatusBadRequest)
+			return
+		}
+
+		h.logger.Error("failed to register user", zap.Error(err))
+		http.Error(w, "failed to register user", http.StatusInternalServerError)
 		return
 	}
 

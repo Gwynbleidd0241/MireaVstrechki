@@ -7,6 +7,7 @@ import (
 	httpserver "meeting-service/internal/http"
 	"meeting-service/internal/logger"
 	"meeting-service/internal/repository/postgres"
+	"meeting-service/internal/service"
 )
 
 func main() {
@@ -25,7 +26,8 @@ func main() {
 	defer db.Close()
 
 	userRepo := postgres.NewUserRepository(db)
+	userService := service.NewUserService(userRepo)
 
-	server := httpserver.New(cfg, logg, userRepo)
+	server := httpserver.New(cfg, logg, userService)
 	server.Run()
 }

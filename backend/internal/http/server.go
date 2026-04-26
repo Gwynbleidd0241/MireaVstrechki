@@ -7,7 +7,7 @@ import (
 
 	"meeting-service/internal/config"
 	"meeting-service/internal/http/handlers"
-	"meeting-service/internal/repository/postgres"
+	"meeting-service/internal/service"
 )
 
 type Server struct {
@@ -15,12 +15,12 @@ type Server struct {
 	logger     *zap.Logger
 }
 
-func New(cfg *config.Config, logger *zap.Logger, userRepo *postgres.UserRepository) *Server {
+func New(cfg *config.Config, logger *zap.Logger, userService *service.UserService) *Server {
 	mux := http.NewServeMux()
 
-	registerHandler := handlers.NewRegisterHandler(userRepo, logger)
+	userHandler := handlers.NewUserHandler(userService, logger)
 
-	mux.Handle("/register", registerHandler)
+	mux.HandleFunc("/register", userHandler.Register)
 
 	return &Server{
 		httpServer: &http.Server{
