@@ -7,6 +7,7 @@ import (
 
 	"meeting-service/internal/config"
 	"meeting-service/internal/http/handlers"
+	"meeting-service/internal/http/middleware"
 	"meeting-service/internal/service"
 )
 
@@ -22,6 +23,11 @@ func New(cfg *config.Config, logger *zap.Logger, userService *service.UserServic
 
 	mux.HandleFunc("/register", userHandler.Register)
 	mux.HandleFunc("/login", userHandler.Login)
+
+	mux.Handle(
+		"/me",
+		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.Me)),
+	)
 
 	return &Server{
 		httpServer: &http.Server{

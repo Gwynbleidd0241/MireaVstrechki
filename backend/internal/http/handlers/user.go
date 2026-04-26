@@ -6,6 +6,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"meeting-service/internal/auth"
+	"meeting-service/internal/http/middleware"
 	"meeting-service/internal/service"
 )
 
@@ -43,6 +45,12 @@ type loginResponse struct {
 	Email string `json:"email"`
 	Role  string `json:"role"`
 	Token string `json:"token"`
+}
+
+type meResponse struct {
+	ID    int64  `json:"id"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -123,4 +131,18 @@ func writeJSON(w http.ResponseWriter, statusCode int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	_ = json.NewEncoder(w).Encode(data)
+}
+
+func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, meResponse{
+		ID:    claims.UserID,
+		Email: claims.Email,
+		Role:  claims.Role,
+	})
 }
