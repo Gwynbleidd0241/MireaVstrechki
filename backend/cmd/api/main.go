@@ -1,13 +1,21 @@
 package main
 
 import (
-	"meeting-service/backend/internal/config"
-	httpserver "meeting-service/backend/internal/http"
+	"log"
+	"meeting-service/internal/config"
+	httpserver "meeting-service/internal/http"
+	"meeting-service/internal/logger"
 )
 
 func main() {
 	cfg := config.Load()
 
-	server := httpserver.New(cfg)
+	logg, err := logger.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer logg.Sync()
+
+	server := httpserver.New(cfg, logg)
 	server.Run()
 }

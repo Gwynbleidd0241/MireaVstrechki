@@ -4,14 +4,17 @@ import (
 	"log"
 	"net/http"
 
-	"meeting-service/backend/internal/config"
+	"meeting-service/internal/config"
+
+	"go.uber.org/zap"
 )
 
 type Server struct {
 	httpServer *http.Server
+	logger     *zap.Logger
 }
 
-func New(cfg *config.Config) *Server {
+func New(cfg *config.Config, logger *zap.Logger) *Server {
 	mux := http.NewServeMux()
 
 	srv := &http.Server{
@@ -21,12 +24,12 @@ func New(cfg *config.Config) *Server {
 
 	return &Server{
 		httpServer: srv,
+		logger:     logger,
 	}
 }
 
 func (s *Server) Run() {
-	log.Printf("server started on %s", s.httpServer.Addr)
-
+	s.logger.Info("server started", zap.String("addr", s.httpServer.Addr))
 	if err := s.httpServer.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
