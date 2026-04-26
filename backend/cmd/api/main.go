@@ -26,8 +26,11 @@ func main() {
 	defer db.Close()
 
 	userRepo := postgres.NewUserRepository(db)
-	userService := service.NewUserService(userRepo, cfg.Auth.JWTSecret)
+	eventRepo := postgres.NewEventRepository(db)
 
-	server := httpserver.New(cfg, logg, userService)
+	userService := service.NewUserService(userRepo, cfg.Auth.JWTSecret)
+	eventService := service.NewEventService(eventRepo)
+
+	server := httpserver.New(cfg, logg, userService, eventService)
 	server.Run()
 }

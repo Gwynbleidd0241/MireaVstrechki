@@ -16,10 +16,16 @@ type Server struct {
 	logger     *zap.Logger
 }
 
-func New(cfg *config.Config, logger *zap.Logger, userService *service.UserService) *Server {
+func New(
+	cfg *config.Config,
+	logger *zap.Logger,
+	userService *service.UserService,
+	eventService *service.EventService,
+) *Server {
 	mux := http.NewServeMux()
 
 	userHandler := handlers.NewUserHandler(userService, logger)
+	eventHandler := handlers.NewEventHandler(eventService, logger)
 
 	mux.HandleFunc("/register", userHandler.Register)
 	mux.HandleFunc("/login", userHandler.Login)
@@ -27,6 +33,20 @@ func New(cfg *config.Config, logger *zap.Logger, userService *service.UserServic
 	mux.Handle(
 		"/me",
 		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.Me)),
+	)
+
+	mux.Handle(
+		"/events",
+		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case http.MethodGet:
+				eventHandler.List(w, r)
+			case http.MethodPost:
+				eventHandler.Create(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+		})),
 	)
 
 	return &Server{
