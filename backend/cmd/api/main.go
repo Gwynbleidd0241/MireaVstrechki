@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"meeting-service/backend/internal/config"
 	"net/http"
 )
 
@@ -11,10 +12,13 @@ type healthResponse struct {
 }
 
 func main() {
+	cfg := config.Load()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
 
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	addr := ":" + cfg.Server.Port
+	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatal(err)
 	}
 }
