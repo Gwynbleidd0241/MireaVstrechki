@@ -31,6 +31,12 @@ func main() {
 	userService := service.NewUserService(userRepo, cfg.Auth.JWTSecret)
 	eventService := service.NewEventService(eventRepo)
 
-	server := httpserver.New(cfg, logg, userService, eventService)
+	taskRepo := postgres.NewTaskRepository(db)
+	taskService := service.NewTaskService(taskRepo)
+
+	participantRepo := postgres.NewParticipantRepository(db)
+	participantService := service.NewParticipantService(participantRepo)
+
+	server := httpserver.New(cfg, logg, userService, eventService, taskService, participantService)
 	server.Run()
 }

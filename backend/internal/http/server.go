@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"strings"
 
 	"go.uber.org/zap"
 
@@ -21,14 +22,18 @@ func New(
 	logger *zap.Logger,
 	userService *service.UserService,
 	eventService *service.EventService,
+	taskService *service.TaskService,
+	participantService *service.ParticipantService,
 ) *Server {
 	mux := http.NewServeMux()
 
 	userHandler := handlers.NewUserHandler(userService, logger)
 	eventHandler := handlers.NewEventHandler(eventService, logger)
+	taskHandler := handlers.NewTaskHandler(taskService, logger)
+	participantHandler := handlers.NewParticipantHandler(participantService, logger)
 
-	mux.HandleFunc("/register", userHandler.Register)
-	mux.HandleFunc("/login", userHandler.Login)
+	mux.Handle("/register", http.HandlerFunc(userHandler.Register))
+	mux.Handle("/login", http.HandlerFunc(userHandler.Login))
 
 	mux.Handle(
 		"/me",
@@ -49,10 +54,40 @@ func New(
 		})),
 	)
 
+	mux.Handle(
+		"/events/",
+		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case strings.HasSuffix(r.URL.Path, "/tasks"):
+				switch r.Method {
+				case http.MethodGet:
+					taskHandler.List(w, r)
+				case http.MethodPost:
+					taskHandler.Create(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+
+			case strings.HasSuffix(r.URL.Path, "/participants"):
+				switch r.Method {
+				case http.MethodGet:
+					participantHandler.List(w, r)
+				case http.MethodPost:
+					participantHandler.Add(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+
+			default:
+				http.NotFound(w, r)
+			}
+		})),
+	)
+
 	return &Server{
 		httpServer: &http.Server{
 			Addr:    ":" + cfg.Server.Port,
-			Handler: mux,
+			Handler: middleware.CORSMiddleware(mux),
 		},
 		logger: logger,
 	}
