@@ -5,6 +5,7 @@ import "os"
 type Config struct {
 	Server   Server
 	Postgres Postgres
+	Auth     Auth
 }
 
 type Server struct {
@@ -13,6 +14,10 @@ type Server struct {
 
 type Postgres struct {
 	DSN string
+}
+
+type Auth struct {
+	JWTSecret string
 }
 
 func Load() *Config {
@@ -26,6 +31,9 @@ func Load() *Config {
 		cfg.Postgres.DSN = dsn
 	}
 
+	if secret := os.Getenv("JWT_SECRET"); secret != "" {
+		cfg.Auth.JWTSecret = secret
+	}
 	return cfg
 }
 
@@ -36,6 +44,9 @@ func defaultConfig() *Config {
 		},
 		Postgres: Postgres{
 			DSN: "postgres://postgres:postgres@localhost:5432/meeting_service?sslmode=disable",
+		},
+		Auth: Auth{
+			JWTSecret: "dev-secret",
 		},
 	}
 }

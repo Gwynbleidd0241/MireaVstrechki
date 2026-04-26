@@ -21,6 +21,7 @@ func New(cfg *config.Config, logger *zap.Logger, userService *service.UserServic
 	userHandler := handlers.NewUserHandler(userService, logger)
 
 	mux.HandleFunc("/register", userHandler.Register)
+	mux.HandleFunc("/login", userHandler.Login)
 
 	return &Server{
 		httpServer: &http.Server{

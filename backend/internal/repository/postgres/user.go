@@ -37,3 +37,20 @@ func (r *UserRepository) Create(email, password, role string) (*model.User, erro
 		Role:         role,
 	}, nil
 }
+
+func (r *UserRepository) GetByEmail(email string) (*model.User, error) {
+	var user model.User
+
+	err := r.db.QueryRow(
+		`SELECT id, email, password_hash, role
+		 FROM users
+		 WHERE email = $1`,
+		email,
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
