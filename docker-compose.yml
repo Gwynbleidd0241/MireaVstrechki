@@ -21,15 +21,9 @@ services:
 
   migrate:
     build: ./backend
-    command:
-      [
-        "/app/goose",
-        "-dir",
-        "/app/migrations",
-        "postgres",
-        "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-meeting_service}?sslmode=disable",
-        "up",
-      ]
+    command: ["/app/api", "migrate"]
+    environment:
+      POSTGRES_DSN: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-meeting_service}?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
