@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { login } from "../api/auth";
+import { Link, useNavigate } from "react-router-dom";
+import { login } from "../../api/auth";
+import "./LoginPage.css";
 
-type Props = {
-  onLogin: () => void;
-  onGoRegister: () => void;
-};
+export function LoginPage() {
+  const navigate = useNavigate();
 
-export function LoginPage({ onLogin, onGoRegister }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,40 +25,43 @@ export function LoginPage({ onLogin, onGoRegister }: Props) {
       localStorage.setItem("email", response.email);
       localStorage.setItem("role", response.role);
 
-      onLogin();
+      navigate("/events");
     } catch (err) {
       setError(err instanceof Error ? err.message : "login failed");
     }
   }
 
   return (
-    <div>
-      <h1>Вход</h1>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-card__header">
+          <h1>Вход</h1>
+          <p>Войдите, чтобы управлять рабочими мероприятиями</p>
+        </div>
 
-      <form onSubmit={handleSubmit}>
-        <div>
+        <form onSubmit={handleSubmit} className="auth-form">
           <input
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-        </div>
 
-        <div>
           <input
             placeholder="Пароль"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-        </div>
 
-        <button type="submit">Войти</button>
-      </form>
+          <button type="submit">Войти</button>
+        </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
 
-      <button onClick={onGoRegister}>Создать аккаунт</button>
+        <p className="auth-link">
+          Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+        </p>
+      </div>
     </div>
   );
 }

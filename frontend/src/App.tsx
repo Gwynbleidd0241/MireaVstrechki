@@ -1,35 +1,44 @@
-import { useState } from "react";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
-import { EventsPage } from "./pages/EventsPage";
-
-type Page = "login" | "register" | "events";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Layout } from "./components/Layout/Layout";
+import { EventsPage } from "./pages/EventsPage/EventsPage";
+import { LoginPage } from "./pages/LoginPage/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage/RegisterPage";
 
 function App() {
-  const [page, setPage] = useState<Page>(
-    localStorage.getItem("token") ? "events" : "login",
-  );
-
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("email");
-    localStorage.removeItem("role");
-    setPage("login");
-  }
-
-  if (page === "register") {
-    return <RegisterPage onGoLogin={() => setPage("login")} />;
-  }
-
-  if (page === "events") {
-    return <EventsPage onLogout={logout} />;
-  }
+  const isAuth = Boolean(localStorage.getItem("token"));
 
   return (
-    <LoginPage
-      onLogin={() => setPage("events")}
-      onGoRegister={() => setPage("register")}
-    />
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/login"
+          element={isAuth ? <Navigate to="/events" /> : <LoginPage />}
+        />
+
+        <Route
+          path="/register"
+          element={isAuth ? <Navigate to="/events" /> : <RegisterPage />}
+        />
+
+        <Route
+          path="/events"
+          element={
+            isAuth ? (
+              <Layout>
+                <EventsPage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+
+        <Route
+          path="*"
+          element={<Navigate to={isAuth ? "/events" : "/login"} />}
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

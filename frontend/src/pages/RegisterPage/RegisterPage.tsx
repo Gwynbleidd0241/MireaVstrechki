@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { register } from "../api/auth";
+import { Link, useNavigate } from "react-router-dom";
+import { register } from "../../api/auth";
+import "../LoginPage/LoginPage.css";
 
-type Props = {
-  onGoLogin: () => void;
-};
+export function RegisterPage() {
+  const navigate = useNavigate();
 
-export function RegisterPage({ onGoLogin }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("employee");
@@ -17,48 +17,49 @@ export function RegisterPage({ onGoLogin }: Props) {
 
     try {
       await register(email, password, role);
-      onGoLogin();
+      navigate("/login");
     } catch (err) {
       setError(err instanceof Error ? err.message : "registration failed");
     }
   }
 
   return (
-    <div>
-      <h1>Регистрация</h1>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-card__header">
+          <h1>Регистрация</h1>
+          <p>Создайте аккаунт для работы с мероприятиями</p>
+        </div>
 
-      <form onSubmit={handleSubmit}>
-        <div>
+        <form onSubmit={handleSubmit} className="auth-form">
           <input
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-        </div>
 
-        <div>
           <input
             placeholder="Пароль"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-        </div>
 
-        <div>
           <select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="employee">Сотрудник</option>
             <option value="organizer">Организатор</option>
             <option value="admin">Администратор</option>
           </select>
-        </div>
 
-        <button type="submit">Зарегистрироваться</button>
-      </form>
+          <button type="submit">Зарегистрироваться</button>
+        </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
 
-      <button onClick={onGoLogin}>Уже есть аккаунт</button>
+        <p className="auth-link">
+          Уже есть аккаунт? <Link to="/login">Войти</Link>
+        </p>
+      </div>
     </div>
   );
 }

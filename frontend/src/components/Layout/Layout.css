@@ -1,0 +1,97 @@
+.app-layout {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    background: #f4f6fb;
+}
+
+.sidebar {
+    background: #111827;
+    color: white;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar__brand {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 36px;
+}
+
+.sidebar__logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: #6366f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+}
+
+.sidebar__brand h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.sidebar__brand p {
+    margin: 4px 0 0;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sidebar__nav a {
+    color: #d1d5db;
+    text-decoration: none;
+    padding: 12px 14px;
+    border-radius: 12px;
+}
+
+.sidebar__nav a.active,
+.sidebar__nav a:hover {
+    color: white;
+    background: #1f2937;
+}
+
+.sidebar__profile {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid #374151;
+}
+
+.sidebar__email {
+    margin: 0;
+    font-weight: 600;
+}
+
+.sidebar__role {
+    margin: 4px 0 14px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.sidebar__profile button {
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    background: #374151;
+    color: white;
+}
+
+.sidebar__profile button:hover {
+    background: #4b5563;
+}
+
+.layout-content {
+    padding: 32px;
+}
