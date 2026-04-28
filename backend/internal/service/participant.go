@@ -10,23 +10,42 @@ import (
 var (
 	ErrParticipantUserRequired = errors.New("participant user required")
 	ErrInvalidParticipantRole  = errors.New("invalid participant role")
+	ErrParticipantNotFound     = errors.New("participant not found")
 )
 
 type ParticipantService struct {
 	participantRepo *postgres.ParticipantRepository
+	eventRepo       *postgres.EventRepository
 }
 
-func NewParticipantService(participantRepo *postgres.ParticipantRepository) *ParticipantService {
-	return &ParticipantService{participantRepo: participantRepo}
+func NewParticipantService(participantRepo *postgres.ParticipantRepository, eventRepo *postgres.EventRepository) *ParticipantService {
+	return &ParticipantService{
+		participantRepo: participantRepo,
+		eventRepo:       eventRepo,
+	}
 }
 
 type AddParticipantRequest struct {
-	EventID int64
-	UserID  int64
-	Role    string
+	EventID        int64
+	UserID         int64
+	Role           string
+	ActingUserID   int64
+	ActingUserRole string
+}
+
+type UpdateParticipantRequest struct {
+	EventID        int64
+	ParticipantID  int64
+	Role           string
+	ActingUserID   int64
+	ActingUserRole string
 }
 
 func (s *ParticipantService) Add(req AddParticipantRequest) (*model.Participant, error) {
+	if err := s.checkManagePermission(req.EventID, req.ActingUserID, req.ActingUserRole); err != nil {
+		return nil, err
+	}
+
 	if req.UserID <= 0 {
 		return nil, ErrParticipantUserRequired
 	}
@@ -36,7 +55,7 @@ func (s *ParticipantService) Add(req AddParticipantRequest) (*model.Participant,
 		role = "participant"
 	}
 
-	if role != "participant" && role != "responsible" {
+	if !isValidParticipantRole(role) {
 		return nil, ErrInvalidParticipantRole
 	}
 
@@ -47,6 +66,69 @@ func (s *ParticipantService) Add(req AddParticipantRequest) (*model.Participant,
 	})
 }
 
+func (s *ParticipantService) Update(req UpdateParticipantRequest) (*model.Participant, error) {
+	participant, err := s.participantRepo.GetByID(req.ParticipantID)
+	if err != nil {
+		return nil, err
+	}
+
+	if participant == nil || participant.EventID != req.EventID {
+		return nil, ErrParticipantNotFound
+	}
+
+	if err := s.checkManagePermission(req.EventID, req.ActingUserID, req.ActingUserRole); err != nil {
+		return nil, err
+	}
+
+	if !isValidParticipantRole(req.Role) {
+		return nil, ErrInvalidParticipantRole
+	}
+
+	return s.participantRepo.UpdateRole(req.ParticipantID, req.Role)
+}
+
+func (s *ParticipantService) Remove(eventID, participantID, actingUserID int64, actingUserRole string) error {
+	participant, err := s.participantRepo.GetByID(participantID)
+	if err != nil {
+		return err
+	}
+
+	if participant == nil || participant.EventID != eventID {
+		return ErrParticipantNotFound
+	}
+
+	if err := s.checkManagePermission(eventID, actingUserID, actingUserRole); err != nil {
+		return err
+	}
+
+	return s.participantRepo.Delete(participantID)
+}
+
 func (s *ParticipantService) ListByEventID(eventID int64) ([]model.Participant, error) {
 	return s.participantRepo.ListByEventID(eventID)
+}
+
+func (s *ParticipantService) checkManagePermission(eventID, actingUserID int64, actingUserRole string) error {
+	if actingUserRole == "admin" {
+		return nil
+	}
+
+	event, err := s.eventRepo.GetByID(eventID)
+	if err != nil {
+		return err
+	}
+
+	if event == nil {
+		return ErrEventNotFound
+	}
+
+	if event.CreatorID != actingUserID {
+		return ErrPermissionDenied
+	}
+
+	return nil
+}
+
+func isValidParticipantRole(role string) bool {
+	return role == "participant" || role == "responsible"
 }

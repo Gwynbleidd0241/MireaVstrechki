@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 
 	"meeting-service/internal/model"
 )
@@ -12,6 +13,63 @@ type ParticipantRepository struct {
 
 func NewParticipantRepository(db *sql.DB) *ParticipantRepository {
 	return &ParticipantRepository{db: db}
+}
+
+func (r *ParticipantRepository) GetByID(id int64) (*model.Participant, error) {
+	var participant model.Participant
+
+	err := r.db.QueryRow(
+		`SELECT id, event_id, user_id, role, created_at
+		 FROM event_participants
+		 WHERE id = $1`,
+		id,
+	).Scan(
+		&participant.ID,
+		&participant.EventID,
+		&participant.UserID,
+		&participant.Role,
+		&participant.CreatedAt,
+	)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &participant, nil
+}
+
+func (r *ParticipantRepository) UpdateRole(id int64, role string) (*model.Participant, error) {
+	var updated model.Participant
+
+	err := r.db.QueryRow(
+		`UPDATE event_participants
+		 SET role = $1
+		 WHERE id = $2
+		 RETURNING id, event_id, user_id, role, created_at`,
+		role,
+		id,
+	).Scan(
+		&updated.ID,
+		&updated.EventID,
+		&updated.UserID,
+		&updated.Role,
+		&updated.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &updated, nil
+}
+
+func (r *ParticipantRepository) Delete(id int64) error {
+	_, err := r.db.Exec(`DELETE FROM event_participants WHERE id = $1`, id)
+	return err
 }
 
 func (r *ParticipantRepository) Add(participant model.Participant) (*model.Participant, error) {

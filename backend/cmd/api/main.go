@@ -41,12 +41,15 @@ func main() {
 	eventService := service.NewEventService(eventRepo)
 
 	taskRepo := postgres.NewTaskRepository(db)
-	taskService := service.NewTaskService(taskRepo)
+	taskService := service.NewTaskService(taskRepo, eventRepo)
 
 	participantRepo := postgres.NewParticipantRepository(db)
-	participantService := service.NewParticipantService(participantRepo)
+	participantService := service.NewParticipantService(participantRepo, eventRepo)
 
-	server := httpserver.New(cfg, logg, userService, eventService, taskService, participantService)
+	agendaRepo := postgres.NewAgendaRepository(db)
+	agendaService := service.NewAgendaService(agendaRepo)
+
+	server := httpserver.New(cfg, logg, userService, eventService, taskService, participantService, agendaService)
 	server.Run()
 }
 

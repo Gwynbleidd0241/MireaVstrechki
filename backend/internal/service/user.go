@@ -9,13 +9,15 @@ import (
 	"meeting-service/internal/auth"
 	"meeting-service/internal/model"
 	"meeting-service/internal/repository/postgres"
+	"meeting-service/internal/validation"
 )
 
 var (
 	ErrInvalidRole        = errors.New("invalid role")
 	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrEmailRequired      = errors.New("email required")
-	ErrPasswordRequired   = errors.New("password required")
+	ErrInvalidEmail       = errors.New("invalid email")
+	ErrPasswordTooShort   = errors.New("password too short")
+	ErrPasswordTooLong    = errors.New("password too long")
 )
 
 type UserService struct {
@@ -48,14 +50,17 @@ type LoginResult struct {
 
 func (s *UserService) Register(req RegisterUserRequest) (*model.User, error) {
 	email := strings.TrimSpace(req.Email)
-	password := strings.TrimSpace(req.Password)
 
-	if email == "" {
-		return nil, ErrEmailRequired
+	if !validation.IsValidEmail(email) {
+		return nil, ErrInvalidEmail
 	}
 
-	if password == "" {
-		return nil, ErrPasswordRequired
+	if len(req.Password) < validation.MinPasswordLength {
+		return nil, ErrPasswordTooShort
+	}
+
+	if len(req.Password) > validation.MaxPasswordLength {
+		return nil, ErrPasswordTooLong
 	}
 
 	role := req.Role
@@ -68,7 +73,7 @@ func (s *UserService) Register(req RegisterUserRequest) (*model.User, error) {
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword(
-		[]byte(password),
+		[]byte(req.Password),
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
@@ -78,9 +83,13 @@ func (s *UserService) Register(req RegisterUserRequest) (*model.User, error) {
 	return s.userRepo.Create(email, string(passwordHash), role)
 }
 
+func (s *UserService) List() ([]model.User, error) {
+	return s.userRepo.List()
+}
+
 func (s *UserService) Login(req LoginUserRequest) (*LoginResult, error) {
 	email := strings.TrimSpace(req.Email)
-	password := strings.TrimSpace(req.Password)
+	password := req.Password
 
 	if email == "" || password == "" {
 		return nil, ErrInvalidCredentials

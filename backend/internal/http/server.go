@@ -24,13 +24,15 @@ func New(
 	eventService *service.EventService,
 	taskService *service.TaskService,
 	participantService *service.ParticipantService,
+	agendaService *service.AgendaService,
 ) *Server {
 	mux := http.NewServeMux()
 
-	userHandler := handlers.NewUserHandler(userService, logger)
+	userHandler := handlers.NewUserHandler(userService, eventService, taskService, logger)
 	eventHandler := handlers.NewEventHandler(eventService, logger)
 	taskHandler := handlers.NewTaskHandler(taskService, logger)
 	participantHandler := handlers.NewParticipantHandler(participantService, logger)
+	agendaHandler := handlers.NewAgendaHandler(agendaService, logger)
 
 	mux.Handle("/register", http.HandlerFunc(userHandler.Register))
 	mux.Handle("/login", http.HandlerFunc(userHandler.Login))
@@ -41,13 +43,27 @@ func New(
 	)
 
 	mux.Handle(
+		"/me/events",
+		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.MyEvents)),
+	)
+
+	mux.Handle(
+		"/me/tasks",
+		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.MyTasks)),
+	)
+
+	createEventHandler := middleware.RequireRole("admin", "organizer")(
+		http.HandlerFunc(eventHandler.Create),
+	)
+
+	mux.Handle(
 		"/events",
 		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodGet:
 				eventHandler.List(w, r)
 			case http.MethodPost:
-				eventHandler.Create(w, r)
+				createEventHandler.ServeHTTP(w, r)
 			default:
 				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			}
@@ -55,15 +71,44 @@ func New(
 	)
 
 	mux.Handle(
+		"/users",
+		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.List)),
+	)
+
+	mux.Handle(
 		"/events/",
 		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch {
+			case strings.Contains(r.URL.Path, "/tasks/"):
+				// /events/{id}/tasks/{taskID}
+				switch r.Method {
+				case http.MethodGet:
+					taskHandler.Get(w, r)
+				case http.MethodPatch:
+					taskHandler.Update(w, r)
+				case http.MethodDelete:
+					taskHandler.Delete(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+
 			case strings.HasSuffix(r.URL.Path, "/tasks"):
 				switch r.Method {
 				case http.MethodGet:
 					taskHandler.List(w, r)
 				case http.MethodPost:
 					taskHandler.Create(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+
+			case strings.Contains(r.URL.Path, "/participants/"):
+				// /events/{id}/participants/{pid}
+				switch r.Method {
+				case http.MethodPatch:
+					participantHandler.Update(w, r)
+				case http.MethodDelete:
+					participantHandler.Remove(w, r)
 				default:
 					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 				}
@@ -78,8 +123,28 @@ func New(
 					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 				}
 
+			case strings.HasSuffix(r.URL.Path, "/agenda"):
+				switch r.Method {
+				case http.MethodGet:
+					agendaHandler.List(w, r)
+				case http.MethodPost:
+					agendaHandler.Add(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+
 			default:
-				http.NotFound(w, r)
+				// /events/{id}
+				switch r.Method {
+				case http.MethodGet:
+					eventHandler.Get(w, r)
+				case http.MethodPatch:
+					eventHandler.Update(w, r)
+				case http.MethodDelete:
+					eventHandler.Delete(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
 			}
 		})),
 	)

@@ -38,6 +38,36 @@ func (r *UserRepository) Create(email, password, role string) (*model.User, erro
 	}, nil
 }
 
+func (r *UserRepository) List() ([]model.User, error) {
+	rows, err := r.db.Query(
+		`SELECT id, email, password_hash, role
+		 FROM users
+		 ORDER BY id ASC`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []model.User
+
+	for rows.Next() {
+		var user model.User
+
+		if err := rows.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role); err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (r *UserRepository) GetByEmail(email string) (*model.User, error) {
 	var user model.User
 
