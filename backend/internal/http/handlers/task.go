@@ -55,6 +55,12 @@ type taskResponse struct {
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	eventID, err := eventIDFromPath(r.URL.Path)
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
@@ -74,12 +80,14 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	task, err := h.taskService.Create(service.CreateTaskRequest{
-		EventID:     eventID,
-		Title:       req.Title,
-		Description: req.Description,
-		Status:      req.Status,
-		AssigneeID:  req.AssigneeID,
-		DueDate:     dueDate,
+		EventID:        eventID,
+		Title:          req.Title,
+		Description:    req.Description,
+		Status:         req.Status,
+		AssigneeID:     req.AssigneeID,
+		DueDate:        dueDate,
+		ActingUserID:   claims.UserID,
+		ActingUserRole: claims.Role,
 	})
 	if err != nil {
 		h.handleTaskError(w, err)

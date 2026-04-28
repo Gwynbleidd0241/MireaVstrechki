@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../../api/auth";
+import { friendlyError } from "../../api/errors";
 import { useAuth } from "../../contexts/AuthContext";
 import "./LoginPage.css";
 
@@ -23,10 +24,10 @@ export function LoginPage() {
         throw new Error("token not found");
       }
 
-      signIn(response.token, response.email, response.role);
+      signIn(response.token, response.id, response.email, response.role);
       navigate("/events");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "login failed");
+      setError(friendlyError(err, "Не удалось войти"));
     }
   }
 

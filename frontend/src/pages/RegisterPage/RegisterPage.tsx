@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { register } from "../../api/auth";
+import { friendlyError } from "../../api/errors";
 import "../LoginPage/LoginPage.css";
 
 export function RegisterPage() {
@@ -19,7 +20,7 @@ export function RegisterPage() {
       await register(email, password, role);
       navigate("/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "registration failed");
+      setError(friendlyError(err, "Не удалось зарегистрироваться"));
     }
   }
 

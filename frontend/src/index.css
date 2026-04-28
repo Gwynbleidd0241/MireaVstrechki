@@ -2,10 +2,18 @@
     box-sizing: border-box;
 }
 
-body {
+html, body {
     margin: 0;
-    font-family: Inter, Arial, sans-serif;
-    color: #111827;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    color: #0f172a;
+    background: #f8fafc;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
 }
 
 button,
@@ -13,4 +21,40 @@ input,
 textarea,
 select {
     font: inherit;
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+a {
+    color: inherit;
+}
+
+.panel {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 22px 24px;
+}
+
+.panel h2 {
+    margin: 0 0 16px;
+    font-size: 17px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.empty-text {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0;
+    font-style: italic;
+}
+
+.form-error {
+    color: #dc2626;
+    margin: 10px 0 0;
+    font-size: 13px;
 }

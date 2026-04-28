@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { createEvent, Event, getEvents } from "../../api/events";
+import { friendlyError } from "../../api/errors";
+import { useAuth } from "../../contexts/AuthContext";
 import "./EventsPage.css";
 
 export function EventsPage() {
+  const { role } = useAuth();
+  const canCreate = role === "admin" || role === "organizer";
+
   const [events, setEvents] = useState<Event[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -16,7 +21,7 @@ export function EventsPage() {
       const response = await getEvents();
       setEvents(response);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed to load events");
+      setError(friendlyError(err, "Не удалось загрузить мероприятия"));
     }
   }
 
@@ -40,7 +45,7 @@ export function EventsPage() {
       setDescription("");
       await loadEvents();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed to create event");
+      setError(friendlyError(err, "Не удалось создать мероприятие"));
     }
   }
 
@@ -53,46 +58,48 @@ export function EventsPage() {
         </div>
       </div>
 
-      <div className="events-grid">
-        <section className="panel">
-          <h2>Создать мероприятие</h2>
+      <div className={`events-grid ${canCreate ? "" : "events-grid--single"}`}>
+        {canCreate && (
+          <section className="panel">
+            <h2>Создать мероприятие</h2>
 
-          <form onSubmit={handleCreateEvent} className="event-form">
-            <input
-              placeholder="Название"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-
-            <textarea
-              placeholder="Описание"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-
-            <label>
-              Начало
+            <form onSubmit={handleCreateEvent} className="event-form">
               <input
-                type="datetime-local"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
+                placeholder="Название"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
               />
-            </label>
 
-            <label>
-              Окончание
-              <input
-                type="datetime-local"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
+              <textarea
+                placeholder="Описание"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
-            </label>
 
-            <button type="submit">Создать встречу</button>
-          </form>
+              <label>
+                Начало
+                <input
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                />
+              </label>
 
-          {error && <p className="form-error">{error}</p>}
-        </section>
+              <label>
+                Окончание
+                <input
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                />
+              </label>
+
+              <button type="submit">Создать встречу</button>
+            </form>
+
+            {error && <p className="form-error">{error}</p>}
+          </section>
+        )}
 
         <section className="panel">
           <h2>Список мероприятий</h2>
@@ -119,6 +126,8 @@ export function EventsPage() {
               ))
             )}
           </div>
+
+          {!canCreate && error && <p className="form-error">{error}</p>}
         </section>
       </div>
     </div>

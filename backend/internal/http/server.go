@@ -123,6 +123,17 @@ func New(
 					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 				}
 
+			case strings.Contains(r.URL.Path, "/agenda/"):
+				// /events/{id}/agenda/{aid}
+				switch r.Method {
+				case http.MethodPatch:
+					agendaHandler.Update(w, r)
+				case http.MethodDelete:
+					agendaHandler.Delete(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+
 			case strings.HasSuffix(r.URL.Path, "/agenda"):
 				switch r.Method {
 				case http.MethodGet:

@@ -31,12 +31,14 @@ func NewTaskService(taskRepo *postgres.TaskRepository, eventRepo *postgres.Event
 }
 
 type CreateTaskRequest struct {
-	EventID     int64
-	Title       string
-	Description string
-	Status      string
-	AssigneeID  *int64
-	DueDate     *time.Time
+	EventID        int64
+	Title          string
+	Description    string
+	Status         string
+	AssigneeID     *int64
+	DueDate        *time.Time
+	ActingUserID   int64
+	ActingUserRole string
 }
 
 type UpdateTaskRequest struct {
@@ -52,6 +54,10 @@ type UpdateTaskRequest struct {
 }
 
 func (s *TaskService) Create(req CreateTaskRequest) (*model.Task, error) {
+	if err := s.checkEventManagePermission(req.EventID, req.ActingUserID, req.ActingUserRole); err != nil {
+		return nil, err
+	}
+
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
 		return nil, ErrTaskTitleRequired
@@ -184,6 +190,27 @@ func (s *TaskService) ListForAssignee(userID int64) ([]model.Task, error) {
 
 func isValidTaskStatus(status string) bool {
 	return status == "todo" || status == "in_progress" || status == "done"
+}
+
+func (s *TaskService) checkEventManagePermission(eventID, actingUserID int64, actingUserRole string) error {
+	if actingUserRole == "admin" {
+		return nil
+	}
+
+	event, err := s.eventRepo.GetByID(eventID)
+	if err != nil {
+		return err
+	}
+
+	if event == nil {
+		return ErrEventNotFound
+	}
+
+	if event.CreatorID != actingUserID {
+		return ErrPermissionDenied
+	}
+
+	return nil
 }
 
 func canEditTask(creatorID int64, assigneeID *int64, userID int64, userRole string) bool {

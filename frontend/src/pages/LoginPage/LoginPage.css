@@ -1,6 +1,9 @@
 .auth-page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #eef2ff, #f8fafc);
+    background:
+        radial-gradient(1000px 500px at 20% -10%, #e0e7ff 0%, transparent 60%),
+        radial-gradient(900px 500px at 80% 110%, #ddd6fe 0%, transparent 55%),
+        #f8fafc;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -9,50 +12,70 @@
 
 .auth-card {
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
     background: white;
-    border-radius: 24px;
-    padding: 32px;
-    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    padding: 40px 32px;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.auth-card__header {
+    text-align: center;
+    margin-bottom: 28px;
 }
 
 .auth-card__header h1 {
-    margin: 0;
-    font-size: 32px;
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #0f172a;
 }
 
 .auth-card__header p {
-    margin: 8px 0 24px;
-    color: #6b7280;
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
 }
 
 .auth-form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 
 .auth-form input,
 .auth-form select {
-    border: 1px solid #d1d5db;
-    border-radius: 14px;
-    padding: 13px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 14px;
     outline: none;
+    font-size: 14px;
+    color: #0f172a;
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.auth-form input::placeholder {
+    color: #94a3b8;
 }
 
 .auth-form input:focus,
 .auth-form select:focus {
     border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
 .auth-form button {
     border: 0;
-    border-radius: 14px;
-    padding: 13px 14px;
+    border-radius: 10px;
+    padding: 12px 14px;
     background: #6366f1;
     color: white;
-    cursor: pointer;
-    font-weight: 700;
+    font-weight: 600;
+    margin-top: 4px;
+    transition: background 0.15s;
 }
 
 .auth-form button:hover {
@@ -61,15 +84,24 @@
 
 .auth-error {
     color: #dc2626;
-    margin-top: 14px;
+    margin: 14px 0 0;
+    font-size: 13px;
+    text-align: center;
 }
 
 .auth-link {
-    margin: 20px 0 0;
-    color: #6b7280;
+    margin: 24px 0 0;
+    color: #64748b;
+    font-size: 14px;
+    text-align: center;
 }
 
 .auth-link a {
     color: #4f46e5;
-    font-weight: 700;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
 }

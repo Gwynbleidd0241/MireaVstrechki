@@ -4,116 +4,146 @@
 }
 
 .page-header {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 
 .page-header h1 {
     margin: 0;
-    font-size: 34px;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #0f172a;
 }
 
 .page-header p {
-    margin: 8px 0 0;
-    color: #6b7280;
+    margin: 6px 0 0;
+    color: #64748b;
 }
 
 .events-grid {
     display: grid;
     grid-template-columns: 380px 1fr;
     gap: 24px;
+    align-items: start;
 }
 
-.panel {
-    background: white;
-    border-radius: 24px;
-    padding: 24px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+.events-grid--single {
+    grid-template-columns: 1fr;
 }
 
-.panel h2 {
-    margin: 0 0 18px;
-    font-size: 22px;
+@media (max-width: 1000px) {
+    .events-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .event-form {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 
 .event-form input,
 .event-form textarea {
     width: 100%;
-    border: 1px solid #d1d5db;
-    border-radius: 14px;
-    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 11px 14px;
     outline: none;
+    font-size: 14px;
+    color: #0f172a;
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.event-form input::placeholder,
+.event-form textarea::placeholder {
+    color: #94a3b8;
 }
 
 .event-form textarea {
-    min-height: 100px;
+    min-height: 90px;
     resize: vertical;
-}
-
-.event-form label {
-    color: #4b5563;
-    font-size: 14px;
-}
-
-.event-form label input {
-    margin-top: 6px;
+    font-family: inherit;
 }
 
 .event-form input:focus,
 .event-form textarea:focus {
     border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.event-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .event-form button {
     border: 0;
-    border-radius: 14px;
-    padding: 13px 14px;
+    border-radius: 10px;
+    padding: 11px 14px;
     background: #6366f1;
     color: white;
-    font-weight: 700;
-    cursor: pointer;
+    font-weight: 600;
+    margin-top: 4px;
+    transition: background 0.15s;
 }
 
 .event-form button:hover {
     background: #4f46e5;
 }
 
-.form-error {
-    margin-top: 14px;
-    color: #dc2626;
-}
-
 .event-list {
     display: grid;
-    gap: 14px;
+    gap: 12px;
+}
+
+.event-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 12px;
+    transition: transform 0.15s;
+}
+
+.event-card-link:hover {
+    transform: translateY(-1px);
 }
 
 .event-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 18px;
-    padding: 18px;
-    background: #f9fafb;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 18px 20px;
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.event-card-link:hover .event-card {
+    border-color: #c7d2fe;
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.1);
 }
 
 .event-card h3 {
-    margin: 0 0 8px;
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #0f172a;
+    letter-spacing: -0.01em;
 }
 
 .event-card p {
-    margin: 0 0 12px;
-    color: #4b5563;
+    margin: 0 0 10px;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .event-card span {
-    color: #6b7280;
-    font-size: 14px;
-}
-
-.empty-text {
-    color: #6b7280;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 500;
 }

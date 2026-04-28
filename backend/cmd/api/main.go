@@ -47,7 +47,7 @@ func main() {
 	participantService := service.NewParticipantService(participantRepo, eventRepo)
 
 	agendaRepo := postgres.NewAgendaRepository(db)
-	agendaService := service.NewAgendaService(agendaRepo)
+	agendaService := service.NewAgendaService(agendaRepo, eventRepo)
 
 	server := httpserver.New(cfg, logg, userService, eventService, taskService, participantService, agendaService)
 	server.Run()
