@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import "./Layout.css";
 
 type Props = {
@@ -8,15 +9,10 @@ type Props = {
 
 export function Layout({ children }: Props) {
   const navigate = useNavigate();
+  const { email, role, signOut } = useAuth();
 
-  const email = localStorage.getItem("email");
-  const role = localStorage.getItem("role");
-
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("email");
-    localStorage.removeItem("role");
-
+  function handleLogout() {
+    signOut();
     navigate("/login");
   }
 
@@ -38,7 +34,7 @@ export function Layout({ children }: Props) {
         <div className="sidebar__profile">
           <p className="sidebar__email">{email}</p>
           <p className="sidebar__role">{role}</p>
-          <button onClick={logout}>Выйти</button>
+          <button onClick={handleLogout}>Выйти</button>
         </div>
       </aside>
 

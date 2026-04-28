@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { createEvent, Event, getEvents } from "../../api/events";
 import "./EventsPage.css";
 
@@ -101,14 +102,20 @@ export function EventsPage() {
               <p className="empty-text">Мероприятий пока нет</p>
             ) : (
               events.map((event) => (
-                <article className="event-card" key={event.id}>
-                  <h3>{event.title}</h3>
-                  <p>{event.description || "Без описания"}</p>
-                  <span>
-                    {new Date(event.start_time).toLocaleString()} —{" "}
-                    {new Date(event.end_time).toLocaleString()}
-                  </span>
-                </article>
+                <Link
+                  to={`/events/${event.id}`}
+                  className="event-card-link"
+                  key={event.id}
+                >
+                  <article className="event-card">
+                    <h3>{event.title}</h3>
+                    <p>{event.description || "Без описания"}</p>
+                    <span>
+                      {new Date(event.start_time).toLocaleString()} —{" "}
+                      {new Date(event.end_time).toLocaleString()}
+                    </span>
+                  </article>
+                </Link>
               ))
             )}
           </div>

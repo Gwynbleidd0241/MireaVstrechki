@@ -21,6 +21,10 @@ export function getEvents() {
   return apiRequest<Event[]>("/events");
 }
 
+export function getEvent(id: number) {
+  return apiRequest<Event>(`/events/${id}`);
+}
+
 export function createEvent(data: CreateEventRequest) {
   return apiRequest<Event>("/events", {
     method: "POST",

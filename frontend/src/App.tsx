@@ -1,11 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout/Layout";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { EventDetailPage } from "./pages/EventDetailPage/EventDetailPage";
 import { EventsPage } from "./pages/EventsPage/EventsPage";
 import { LoginPage } from "./pages/LoginPage/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage/RegisterPage";
 
-function App() {
-  const isAuth = Boolean(localStorage.getItem("token"));
+function AppRoutes() {
+  const { isAuth } = useAuth();
 
   return (
     <BrowserRouter>
@@ -34,11 +36,32 @@ function App() {
         />
 
         <Route
+          path="/events/:id"
+          element={
+            isAuth ? (
+              <Layout>
+                <EventDetailPage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+
+        <Route
           path="*"
           element={<Navigate to={isAuth ? "/events" : "/login"} />}
         />
       </Routes>
     </BrowserRouter>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }
 

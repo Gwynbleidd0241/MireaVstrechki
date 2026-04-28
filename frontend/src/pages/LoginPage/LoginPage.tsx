@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../../api/auth";
+import { useAuth } from "../../contexts/AuthContext";
 import "./LoginPage.css";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,10 +23,7 @@ export function LoginPage() {
         throw new Error("token not found");
       }
 
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("email", response.email);
-      localStorage.setItem("role", response.role);
-
+      signIn(response.token, response.email, response.role);
       navigate("/events");
     } catch (err) {
       setError(err instanceof Error ? err.message : "login failed");
