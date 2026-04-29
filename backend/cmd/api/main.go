@@ -10,6 +10,7 @@ import (
 	httpserver "meeting-service/internal/http"
 	"meeting-service/internal/logger"
 	"meeting-service/internal/repository/postgres"
+	"meeting-service/internal/seed"
 	"meeting-service/internal/service"
 	"meeting-service/migrations"
 )
@@ -19,6 +20,11 @@ func main() {
 
 	if len(os.Args) > 1 && os.Args[1] == "migrate" {
 		runMigrations(cfg.Postgres.DSN)
+		return
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "seed" {
+		runSeed(cfg.Postgres.DSN)
 		return
 	}
 
@@ -71,4 +77,16 @@ func runMigrations(dsn string) {
 	}
 
 	log.Println("migrations applied")
+}
+
+func runSeed(dsn string) {
+	db, err := postgres.New(dsn)
+	if err != nil {
+		log.Fatalf("seed: connect: %v", err)
+	}
+	defer db.Close()
+
+	if err := seed.Run(db); err != nil {
+		log.Fatalf("seed: %v", err)
+	}
 }
