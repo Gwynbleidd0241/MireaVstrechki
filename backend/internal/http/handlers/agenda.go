@@ -3,8 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -28,9 +26,9 @@ func NewAgendaHandler(agendaService *service.AgendaService, logger *zap.Logger) 
 }
 
 type addAgendaItemRequest struct {
-	Title           string `json:"title"`
+	Title           string `json:"title"            example:"Цели спринта"`
 	Description     string `json:"description"`
-	DurationMinutes *int   `json:"duration_minutes"`
+	DurationMinutes *int   `json:"duration_minutes" example:"15"`
 }
 
 type updateAgendaItemRequest struct {
@@ -51,6 +49,18 @@ type agendaItemResponse struct {
 	CreatedAt       string `json:"created_at"`
 }
 
+// Add godoc
+// @Summary  Добавить пункт повестки
+// @Tags     agenda
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id    path     int                  true "Event ID"
+// @Param    input body     addAgendaItemRequest true "Пункт повестки"
+// @Success  201   {object} agendaItemResponse
+// @Failure  400   {string} string "validation error"
+// @Failure  403   {string} string "permission denied"
+// @Router   /events/{id}/agenda [post]
 func (h *AgendaHandler) Add(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -58,7 +68,7 @@ func (h *AgendaHandler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, err := eventIDFromAgendaPath(r.URL.Path)
+	eventID, err := parseEventResource(r.URL.Path, "agenda")
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
@@ -79,13 +89,26 @@ func (h *AgendaHandler) Add(w http.ResponseWriter, r *http.Request) {
 		ActingUserRole:  claims.Role,
 	})
 	if err != nil {
-		h.handleAgendaError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusCreated, toAgendaItemResponse(*item))
 }
 
+// Update godoc
+// @Summary  Обновить пункт повестки
+// @Tags     agenda
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id       path     int                     true "Event ID"
+// @Param    agendaId path     int                     true "Agenda Item ID"
+// @Param    input    body     updateAgendaItemRequest true "Новые поля"
+// @Success  200      {object} agendaItemResponse
+// @Failure  403      {string} string "permission denied"
+// @Failure  404      {string} string "agenda item not found"
+// @Router   /events/{id}/agenda/{agendaId} [patch]
 func (h *AgendaHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -93,7 +116,7 @@ func (h *AgendaHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, itemID, err := eventAndAgendaIDFromPath(r.URL.Path)
+	eventID, itemID, err := parseEventSubResource(r.URL.Path, "agenda")
 	if err != nil {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
@@ -116,13 +139,23 @@ func (h *AgendaHandler) Update(w http.ResponseWriter, r *http.Request) {
 		ActingUserRole:  claims.Role,
 	})
 	if err != nil {
-		h.handleAgendaError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, toAgendaItemResponse(*item))
 }
 
+// Delete godoc
+// @Summary  Удалить пункт повестки
+// @Tags     agenda
+// @Security BearerAuth
+// @Param    id       path     int true "Event ID"
+// @Param    agendaId path     int true "Agenda Item ID"
+// @Success  204      {string} string "no content"
+// @Failure  403      {string} string "permission denied"
+// @Failure  404      {string} string "agenda item not found"
+// @Router   /events/{id}/agenda/{agendaId} [delete]
 func (h *AgendaHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -130,22 +163,30 @@ func (h *AgendaHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, itemID, err := eventAndAgendaIDFromPath(r.URL.Path)
+	eventID, itemID, err := parseEventSubResource(r.URL.Path, "agenda")
 	if err != nil {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.agendaService.Remove(eventID, itemID, claims.UserID, claims.Role); err != nil {
-		h.handleAgendaError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// List godoc
+// @Summary  Список пунктов повестки
+// @Tags     agenda
+// @Produce  json
+// @Security BearerAuth
+// @Param    id  path  int true "Event ID"
+// @Success  200 {array} agendaItemResponse
+// @Router   /events/{id}/agenda [get]
 func (h *AgendaHandler) List(w http.ResponseWriter, r *http.Request) {
-	eventID, err := eventIDFromAgendaPath(r.URL.Path)
+	eventID, err := parseEventResource(r.URL.Path, "agenda")
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
@@ -164,58 +205,6 @@ func (h *AgendaHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
-}
-
-func (h *AgendaHandler) handleAgendaError(w http.ResponseWriter, err error) {
-	switch err {
-	case service.ErrAgendaItemTitleRequired:
-		http.Error(w, "agenda item title required", http.StatusBadRequest)
-	case service.ErrAgendaItemTitleTooLong:
-		http.Error(w, "agenda item title too long", http.StatusBadRequest)
-	case service.ErrAgendaItemDescriptionTooLong:
-		http.Error(w, "agenda item description too long", http.StatusBadRequest)
-	case service.ErrInvalidAgendaDuration:
-		http.Error(w, "invalid agenda item duration", http.StatusBadRequest)
-	case service.ErrAgendaItemNotFound:
-		http.Error(w, "agenda item not found", http.StatusNotFound)
-	case service.ErrEventNotFound:
-		http.Error(w, "event not found", http.StatusNotFound)
-	case service.ErrPermissionDenied:
-		http.Error(w, "permission denied", http.StatusForbidden)
-	default:
-		h.logger.Error("agenda handler error", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-	}
-}
-
-func eventIDFromAgendaPath(path string) (int64, error) {
-	// /events/{id}/agenda
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) != 3 || parts[0] != "events" || parts[2] != "agenda" {
-		return 0, strconv.ErrSyntax
-	}
-
-	return strconv.ParseInt(parts[1], 10, 64)
-}
-
-func eventAndAgendaIDFromPath(path string) (int64, int64, error) {
-	// /events/{id}/agenda/{aid}
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) != 4 || parts[0] != "events" || parts[2] != "agenda" {
-		return 0, 0, strconv.ErrSyntax
-	}
-
-	eventID, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	itemID, err := strconv.ParseInt(parts[3], 10, 64)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return eventID, itemID, nil
 }
 
 func toAgendaItemResponse(item model.AgendaItem) agendaItemResponse {

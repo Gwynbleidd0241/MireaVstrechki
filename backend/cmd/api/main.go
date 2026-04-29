@@ -1,3 +1,6 @@
+// @title           Meeting Service API
+// @version         1.0
+// @description     Сервис для управления рабочими мероприятиями.
 package main
 
 import (

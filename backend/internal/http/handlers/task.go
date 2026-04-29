@@ -3,8 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -28,17 +26,17 @@ func NewTaskHandler(taskService *service.TaskService, logger *zap.Logger) *TaskH
 }
 
 type createTaskRequest struct {
-	Title       string  `json:"title"`
+	Title       string  `json:"title"        example:"Подготовить макеты"`
 	Description string  `json:"description"`
-	Status      string  `json:"status"`
+	Status      string  `json:"status"       example:"todo" enums:"todo,in_progress,done"`
 	AssigneeID  *int64  `json:"assignee_id"`
-	DueDate     *string `json:"due_date"`
+	DueDate     *string `json:"due_date"     example:"2026-05-10T18:00:00Z"`
 }
 
 type updateTaskRequest struct {
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
-	Status      string  `json:"status"`
+	Status      string  `json:"status"      enums:"todo,in_progress,done"`
 	AssigneeID  *int64  `json:"assignee_id"`
 	DueDate     *string `json:"due_date"`
 }
@@ -54,6 +52,18 @@ type taskResponse struct {
 	CreatedAt   string  `json:"created_at"`
 }
 
+// Create godoc
+// @Summary  Создать задачу во встрече
+// @Tags     tasks
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id    path     int               true "Event ID"
+// @Param    input body     createTaskRequest true "Параметры задачи"
+// @Success  201   {object} taskResponse
+// @Failure  400   {string} string "validation error"
+// @Failure  403   {string} string "permission denied"
+// @Router   /events/{id}/tasks [post]
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -61,7 +71,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, err := eventIDFromPath(r.URL.Path)
+	eventID, err := parseEventResource(r.URL.Path, "tasks")
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
@@ -90,15 +100,25 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ActingUserRole: claims.Role,
 	})
 	if err != nil {
-		h.handleTaskError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusCreated, toTaskResponse(*task))
 }
 
+// Get godoc
+// @Summary  Получить задачу по id
+// @Tags     tasks
+// @Produce  json
+// @Security BearerAuth
+// @Param    id     path     int true "Event ID"
+// @Param    taskId path     int true "Task ID"
+// @Success  200    {object} taskResponse
+// @Failure  404    {string} string "task not found"
+// @Router   /events/{id}/tasks/{taskId} [get]
 func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
-	eventID, taskID, err := eventAndTaskIDFromPath(r.URL.Path)
+	eventID, taskID, err := parseEventSubResource(r.URL.Path, "tasks")
 	if err != nil {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
@@ -106,13 +126,27 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	task, err := h.taskService.Get(eventID, taskID)
 	if err != nil {
-		h.handleTaskError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, toTaskResponse(*task))
 }
 
+// Update godoc
+// @Summary  Обновить задачу
+// @Tags     tasks
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id     path     int               true "Event ID"
+// @Param    taskId path     int               true "Task ID"
+// @Param    input  body     updateTaskRequest true "Новые поля"
+// @Success  200    {object} taskResponse
+// @Failure  400    {string} string "validation error"
+// @Failure  403    {string} string "permission denied"
+// @Failure  404    {string} string "task not found"
+// @Router   /events/{id}/tasks/{taskId} [patch]
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -120,7 +154,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, taskID, err := eventAndTaskIDFromPath(r.URL.Path)
+	eventID, taskID, err := parseEventSubResource(r.URL.Path, "tasks")
 	if err != nil {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
@@ -150,13 +184,23 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		UserRole:    claims.Role,
 	})
 	if err != nil {
-		h.handleTaskError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, toTaskResponse(*task))
 }
 
+// Delete godoc
+// @Summary  Удалить задачу
+// @Tags     tasks
+// @Security BearerAuth
+// @Param    id     path     int true "Event ID"
+// @Param    taskId path     int true "Task ID"
+// @Success  204    {string} string "no content"
+// @Failure  403    {string} string "permission denied"
+// @Failure  404    {string} string "task not found"
+// @Router   /events/{id}/tasks/{taskId} [delete]
 func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -164,22 +208,30 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, taskID, err := eventAndTaskIDFromPath(r.URL.Path)
+	eventID, taskID, err := parseEventSubResource(r.URL.Path, "tasks")
 	if err != nil {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.taskService.Delete(eventID, taskID, claims.UserID, claims.Role); err != nil {
-		h.handleTaskError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// List godoc
+// @Summary  Все задачи встречи
+// @Tags     tasks
+// @Produce  json
+// @Security BearerAuth
+// @Param    id  path  int true "Event ID"
+// @Success  200 {array} taskResponse
+// @Router   /events/{id}/tasks [get]
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	eventID, err := eventIDFromPath(r.URL.Path)
+	eventID, err := parseEventResource(r.URL.Path, "tasks")
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
@@ -198,71 +250,6 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
-}
-
-func (h *TaskHandler) handleTaskError(w http.ResponseWriter, err error) {
-	switch err {
-	case service.ErrTaskTitleRequired:
-		http.Error(w, "task title required", http.StatusBadRequest)
-	case service.ErrTaskTitleTooLong:
-		http.Error(w, "task title too long", http.StatusBadRequest)
-	case service.ErrTaskDescriptionTooLong:
-		http.Error(w, "task description too long", http.StatusBadRequest)
-	case service.ErrInvalidTaskStatus:
-		http.Error(w, "invalid task status", http.StatusBadRequest)
-	case service.ErrTaskNotFound:
-		http.Error(w, "task not found", http.StatusNotFound)
-	case service.ErrEventNotFound:
-		http.Error(w, "event not found", http.StatusNotFound)
-	case service.ErrPermissionDenied:
-		http.Error(w, "permission denied", http.StatusForbidden)
-	default:
-		h.logger.Error("task handler error", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-	}
-}
-
-func eventIDFromPath(path string) (int64, error) {
-	// /events/{id}/tasks
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) != 3 || parts[0] != "events" || parts[2] != "tasks" {
-		return 0, strconv.ErrSyntax
-	}
-
-	return strconv.ParseInt(parts[1], 10, 64)
-}
-
-func eventAndTaskIDFromPath(path string) (int64, int64, error) {
-	// /events/{id}/tasks/{taskID}
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) != 4 || parts[0] != "events" || parts[2] != "tasks" {
-		return 0, 0, strconv.ErrSyntax
-	}
-
-	eventID, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	taskID, err := strconv.ParseInt(parts[3], 10, 64)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return eventID, taskID, nil
-}
-
-func parseOptionalDueDate(raw *string) (*time.Time, error) {
-	if raw == nil || *raw == "" {
-		return nil, nil
-	}
-
-	parsed, err := time.Parse(time.RFC3339, *raw)
-	if err != nil {
-		return nil, err
-	}
-
-	return &parsed, nil
 }
 
 func toTaskResponse(task model.Task) taskResponse {

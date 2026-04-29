@@ -3,8 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -28,10 +26,10 @@ func NewEventHandler(eventService *service.EventService, logger *zap.Logger) *Ev
 }
 
 type createEventRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	StartTime   string `json:"start_time"`
-	EndTime     string `json:"end_time"`
+	Title       string `json:"title"       example:"Планирование спринта"`
+	Description string `json:"description" example:"Расставляем приоритеты"`
+	StartTime   string `json:"start_time"  example:"2026-05-01T10:00:00Z"`
+	EndTime     string `json:"end_time"    example:"2026-05-01T11:00:00Z"`
 }
 
 type updateEventRequest struct {
@@ -51,6 +49,17 @@ type eventResponse struct {
 	CreatedAt   string `json:"created_at"`
 }
 
+// Create godoc
+// @Summary  Создать встречу
+// @Tags     events
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    input body     createEventRequest true "Параметры встречи"
+// @Success  201   {object} eventResponse
+// @Failure  400   {string} string "validation error"
+// @Failure  403   {string} string "permission denied"
+// @Router   /events [post]
 func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -85,15 +94,24 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 		CreatorRole: claims.Role,
 	})
 	if err != nil {
-		h.handleEventError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusCreated, toEventResponse(*event))
 }
 
+// Get godoc
+// @Summary  Получить встречу по id
+// @Tags     events
+// @Produce  json
+// @Security BearerAuth
+// @Param    id  path     int true "Event ID"
+// @Success  200 {object} eventResponse
+// @Failure  404 {string} string "event not found"
+// @Router   /events/{id} [get]
 func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
-	eventID, err := eventIDFromEventPath(r.URL.Path)
+	eventID, err := parseEventID(r.URL.Path)
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
@@ -101,13 +119,26 @@ func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	event, err := h.eventService.Get(eventID)
 	if err != nil {
-		h.handleEventError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, toEventResponse(*event))
 }
 
+// Update godoc
+// @Summary  Обновить встречу
+// @Tags     events
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id    path     int                true "Event ID"
+// @Param    input body     updateEventRequest true "Новые параметры"
+// @Success  200   {object} eventResponse
+// @Failure  400   {string} string "validation error"
+// @Failure  403   {string} string "permission denied"
+// @Failure  404   {string} string "event not found"
+// @Router   /events/{id} [patch]
 func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -115,7 +146,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, err := eventIDFromEventPath(r.URL.Path)
+	eventID, err := parseEventID(r.URL.Path)
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
@@ -149,13 +180,22 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		UserRole:    claims.Role,
 	})
 	if err != nil {
-		h.handleEventError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, toEventResponse(*event))
 }
 
+// Delete godoc
+// @Summary  Удалить встречу
+// @Tags     events
+// @Security BearerAuth
+// @Param    id  path     int true "Event ID"
+// @Success  204 {string} string "no content"
+// @Failure  403 {string} string "permission denied"
+// @Failure  404 {string} string "event not found"
+// @Router   /events/{id} [delete]
 func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -163,20 +203,27 @@ func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, err := eventIDFromEventPath(r.URL.Path)
+	eventID, err := parseEventID(r.URL.Path)
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.eventService.Delete(eventID, claims.UserID, claims.Role); err != nil {
-		h.handleEventError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// List godoc
+// @Summary  Список всех встреч
+// @Tags     events
+// @Produce  json
+// @Security BearerAuth
+// @Success  200 {array} eventResponse
+// @Router   /events [get]
 func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	events, err := h.eventService.List()
 	if err != nil {
@@ -191,35 +238,6 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
-}
-
-func (h *EventHandler) handleEventError(w http.ResponseWriter, err error) {
-	switch err {
-	case service.ErrEventTitleRequired:
-		http.Error(w, "event title required", http.StatusBadRequest)
-	case service.ErrEventTitleTooLong:
-		http.Error(w, "event title too long", http.StatusBadRequest)
-	case service.ErrEventDescriptionTooLong:
-		http.Error(w, "event description too long", http.StatusBadRequest)
-	case service.ErrInvalidEventTime:
-		http.Error(w, "invalid event time", http.StatusBadRequest)
-	case service.ErrEventNotFound:
-		http.Error(w, "event not found", http.StatusNotFound)
-	case service.ErrPermissionDenied:
-		http.Error(w, "permission denied", http.StatusForbidden)
-	default:
-		h.logger.Error("event handler error", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-	}
-}
-
-func eventIDFromEventPath(path string) (int64, error) {
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) != 2 || parts[0] != "events" {
-		return 0, strconv.ErrSyntax
-	}
-
-	return strconv.ParseInt(parts[1], 10, 64)
 }
 
 func toEventResponse(event model.Event) eventResponse {

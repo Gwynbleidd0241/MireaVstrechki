@@ -3,8 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -28,12 +26,12 @@ func NewParticipantHandler(participantService *service.ParticipantService, logge
 }
 
 type addParticipantRequest struct {
-	UserID int64  `json:"user_id"`
-	Role   string `json:"role"`
+	UserID int64  `json:"user_id" example:"5"`
+	Role   string `json:"role"    example:"participant" enums:"participant,responsible"`
 }
 
 type updateParticipantRequest struct {
-	Role string `json:"role"`
+	Role string `json:"role" enums:"participant,responsible"`
 }
 
 type participantResponse struct {
@@ -44,6 +42,18 @@ type participantResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
+// Add godoc
+// @Summary  Добавить участника во встречу
+// @Tags     participants
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id    path     int                   true "Event ID"
+// @Param    input body     addParticipantRequest true "Пользователь и роль"
+// @Success  201   {object} participantResponse
+// @Failure  400   {string} string "validation error"
+// @Failure  403   {string} string "permission denied"
+// @Router   /events/{id}/participants [post]
 func (h *ParticipantHandler) Add(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -51,7 +61,7 @@ func (h *ParticipantHandler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, err := eventIDFromParticipantsPath(r.URL.Path)
+	eventID, err := parseEventResource(r.URL.Path, "participants")
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
@@ -71,13 +81,26 @@ func (h *ParticipantHandler) Add(w http.ResponseWriter, r *http.Request) {
 		ActingUserRole: claims.Role,
 	})
 	if err != nil {
-		h.handleParticipantError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusCreated, toParticipantResponse(*participant))
 }
 
+// Update godoc
+// @Summary  Изменить роль участника
+// @Tags     participants
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id            path     int                      true "Event ID"
+// @Param    participantId path     int                      true "Participant ID"
+// @Param    input         body     updateParticipantRequest true "Новая роль"
+// @Success  200           {object} participantResponse
+// @Failure  403           {string} string "permission denied"
+// @Failure  404           {string} string "participant not found"
+// @Router   /events/{id}/participants/{participantId} [patch]
 func (h *ParticipantHandler) Update(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -85,7 +108,7 @@ func (h *ParticipantHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, participantID, err := eventAndParticipantIDFromPath(r.URL.Path)
+	eventID, participantID, err := parseEventSubResource(r.URL.Path, "participants")
 	if err != nil {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
@@ -105,13 +128,23 @@ func (h *ParticipantHandler) Update(w http.ResponseWriter, r *http.Request) {
 		ActingUserRole: claims.Role,
 	})
 	if err != nil {
-		h.handleParticipantError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	writeJSON(w, http.StatusOK, toParticipantResponse(*participant))
 }
 
+// Remove godoc
+// @Summary  Удалить участника из встречи
+// @Tags     participants
+// @Security BearerAuth
+// @Param    id            path     int true "Event ID"
+// @Param    participantId path     int true "Participant ID"
+// @Success  204           {string} string "no content"
+// @Failure  403           {string} string "permission denied"
+// @Failure  404           {string} string "participant not found"
+// @Router   /events/{id}/participants/{participantId} [delete]
 func (h *ParticipantHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -119,22 +152,30 @@ func (h *ParticipantHandler) Remove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventID, participantID, err := eventAndParticipantIDFromPath(r.URL.Path)
+	eventID, participantID, err := parseEventSubResource(r.URL.Path, "participants")
 	if err != nil {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.participantService.Remove(eventID, participantID, claims.UserID, claims.Role); err != nil {
-		h.handleParticipantError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// List godoc
+// @Summary  Список участников встречи
+// @Tags     participants
+// @Produce  json
+// @Security BearerAuth
+// @Param    id  path  int true "Event ID"
+// @Success  200 {array} participantResponse
+// @Router   /events/{id}/participants [get]
 func (h *ParticipantHandler) List(w http.ResponseWriter, r *http.Request) {
-	eventID, err := eventIDFromParticipantsPath(r.URL.Path)
+	eventID, err := parseEventResource(r.URL.Path, "participants")
 	if err != nil {
 		http.Error(w, "invalid event id", http.StatusBadRequest)
 		return
@@ -153,54 +194,6 @@ func (h *ParticipantHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
-}
-
-func (h *ParticipantHandler) handleParticipantError(w http.ResponseWriter, err error) {
-	switch err {
-	case service.ErrParticipantUserRequired:
-		http.Error(w, "participant user required", http.StatusBadRequest)
-	case service.ErrInvalidParticipantRole:
-		http.Error(w, "invalid participant role", http.StatusBadRequest)
-	case service.ErrParticipantNotFound:
-		http.Error(w, "participant not found", http.StatusNotFound)
-	case service.ErrEventNotFound:
-		http.Error(w, "event not found", http.StatusNotFound)
-	case service.ErrPermissionDenied:
-		http.Error(w, "permission denied", http.StatusForbidden)
-	default:
-		h.logger.Error("participant handler error", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-	}
-}
-
-func eventIDFromParticipantsPath(path string) (int64, error) {
-	// /events/{id}/participants
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) != 3 || parts[0] != "events" || parts[2] != "participants" {
-		return 0, strconv.ErrSyntax
-	}
-
-	return strconv.ParseInt(parts[1], 10, 64)
-}
-
-func eventAndParticipantIDFromPath(path string) (int64, int64, error) {
-	// /events/{id}/participants/{pid}
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) != 4 || parts[0] != "events" || parts[2] != "participants" {
-		return 0, 0, strconv.ErrSyntax
-	}
-
-	eventID, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	participantID, err := strconv.ParseInt(parts[3], 10, 64)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return eventID, participantID, nil
 }
 
 func toParticipantResponse(participant model.Participant) participantResponse {

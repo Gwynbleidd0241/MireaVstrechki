@@ -1,0 +1,922 @@
+definitions:
+  handlers.addAgendaItemRequest:
+    properties:
+      description:
+        type: string
+      duration_minutes:
+        example: 15
+        type: integer
+      title:
+        example: Цели спринта
+        type: string
+    type: object
+  handlers.addParticipantRequest:
+    properties:
+      role:
+        enum:
+        - participant
+        - responsible
+        example: participant
+        type: string
+      user_id:
+        example: 5
+        type: integer
+    type: object
+  handlers.agendaItemResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      duration_minutes:
+        type: integer
+      event_id:
+        type: integer
+      id:
+        type: integer
+      is_done:
+        type: boolean
+      position:
+        type: integer
+      title:
+        type: string
+    type: object
+  handlers.createEventRequest:
+    properties:
+      description:
+        example: Расставляем приоритеты
+        type: string
+      end_time:
+        example: "2026-05-01T11:00:00Z"
+        type: string
+      start_time:
+        example: "2026-05-01T10:00:00Z"
+        type: string
+      title:
+        example: Планирование спринта
+        type: string
+    type: object
+  handlers.createTaskRequest:
+    properties:
+      assignee_id:
+        type: integer
+      description:
+        type: string
+      due_date:
+        example: "2026-05-10T18:00:00Z"
+        type: string
+      status:
+        enum:
+        - todo
+        - in_progress
+        - done
+        example: todo
+        type: string
+      title:
+        example: Подготовить макеты
+        type: string
+    type: object
+  handlers.eventResponse:
+    properties:
+      created_at:
+        type: string
+      creator_id:
+        type: integer
+      description:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: integer
+      start_time:
+        type: string
+      title:
+        type: string
+    type: object
+  handlers.loginRequest:
+    properties:
+      email:
+        example: petr@example.com
+        type: string
+      password:
+        example: super-secret
+        type: string
+    type: object
+  handlers.loginResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+      token:
+        type: string
+    type: object
+  handlers.meResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+    type: object
+  handlers.participantResponse:
+    properties:
+      created_at:
+        type: string
+      event_id:
+        type: integer
+      id:
+        type: integer
+      role:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  handlers.registerRequest:
+    properties:
+      email:
+        example: petr@example.com
+        type: string
+      password:
+        example: super-secret
+        type: string
+      role:
+        enum:
+        - admin
+        - organizer
+        - employee
+        example: employee
+        type: string
+    type: object
+  handlers.registerResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+    type: object
+  handlers.taskResponse:
+    properties:
+      assignee_id:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      due_date:
+        type: string
+      event_id:
+        type: integer
+      id:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  handlers.updateAgendaItemRequest:
+    properties:
+      description:
+        type: string
+      duration_minutes:
+        type: integer
+      is_done:
+        type: boolean
+      title:
+        type: string
+    type: object
+  handlers.updateEventRequest:
+    properties:
+      description:
+        type: string
+      end_time:
+        type: string
+      start_time:
+        type: string
+      title:
+        type: string
+    type: object
+  handlers.updateParticipantRequest:
+    properties:
+      role:
+        enum:
+        - participant
+        - responsible
+        type: string
+    type: object
+  handlers.updateTaskRequest:
+    properties:
+      assignee_id:
+        type: integer
+      description:
+        type: string
+      due_date:
+        type: string
+      status:
+        enum:
+        - todo
+        - in_progress
+        - done
+        type: string
+      title:
+        type: string
+    type: object
+  handlers.userResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      role:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Сервис для управления рабочими мероприятиями.
+  title: Meeting Service API
+  version: "1.0"
+paths:
+  /events:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.eventResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список всех встреч
+      tags:
+      - events
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Параметры встречи
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.createEventRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.eventResponse'
+        "400":
+          description: validation error
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Создать встречу
+      tags:
+      - events
+  /events/{id}:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: no content
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: event not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Удалить встречу
+      tags:
+      - events
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.eventResponse'
+        "404":
+          description: event not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Получить встречу по id
+      tags:
+      - events
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новые параметры
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateEventRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.eventResponse'
+        "400":
+          description: validation error
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: event not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Обновить встречу
+      tags:
+      - events
+  /events/{id}/agenda:
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.agendaItemResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список пунктов повестки
+      tags:
+      - agenda
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Пункт повестки
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.addAgendaItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.agendaItemResponse'
+        "400":
+          description: validation error
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Добавить пункт повестки
+      tags:
+      - agenda
+  /events/{id}/agenda/{agendaId}:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Agenda Item ID
+        in: path
+        name: agendaId
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: no content
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: agenda item not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Удалить пункт повестки
+      tags:
+      - agenda
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Agenda Item ID
+        in: path
+        name: agendaId
+        required: true
+        type: integer
+      - description: Новые поля
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateAgendaItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.agendaItemResponse'
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: agenda item not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Обновить пункт повестки
+      tags:
+      - agenda
+  /events/{id}/participants:
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.participantResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Список участников встречи
+      tags:
+      - participants
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Пользователь и роль
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.addParticipantRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.participantResponse'
+        "400":
+          description: validation error
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Добавить участника во встречу
+      tags:
+      - participants
+  /events/{id}/participants/{participantId}:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Participant ID
+        in: path
+        name: participantId
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: no content
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: participant not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Удалить участника из встречи
+      tags:
+      - participants
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Participant ID
+        in: path
+        name: participantId
+        required: true
+        type: integer
+      - description: Новая роль
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateParticipantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.participantResponse'
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: participant not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Изменить роль участника
+      tags:
+      - participants
+  /events/{id}/tasks:
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.taskResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Все задачи встречи
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Параметры задачи
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.createTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.taskResponse'
+        "400":
+          description: validation error
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Создать задачу во встрече
+      tags:
+      - tasks
+  /events/{id}/tasks/{taskId}:
+    delete:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: no content
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: task not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Удалить задачу
+      tags:
+      - tasks
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.taskResponse'
+        "404":
+          description: task not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Получить задачу по id
+      tags:
+      - tasks
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      - description: Новые поля
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.taskResponse'
+        "400":
+          description: validation error
+          schema:
+            type: string
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: task not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Обновить задачу
+      tags:
+      - tasks
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Email и пароль
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.loginResponse'
+        "401":
+          description: invalid email or password
+          schema:
+            type: string
+      summary: Вход в систему, возвращает JWT
+      tags:
+      - auth
+  /me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.meResponse'
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Профиль текущего пользователя
+      tags:
+      - auth
+  /me/events:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.eventResponse'
+            type: array
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Встречи, в которых я создатель или участник
+      tags:
+      - auth
+  /me/tasks:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.taskResponse'
+            type: array
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Задачи, назначенные на меня
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Учётные данные
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.registerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.registerResponse'
+        "400":
+          description: validation error
+          schema:
+            type: string
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+  /users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.userResponse'
+            type: array
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Список всех пользователей
+      tags:
+      - users
+swagger: "2.0"

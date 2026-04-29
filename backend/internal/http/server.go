@@ -36,128 +36,101 @@ func New(
 
 	mux.Handle("/register", http.HandlerFunc(userHandler.Register))
 	mux.Handle("/login", http.HandlerFunc(userHandler.Login))
-
-	mux.Handle(
-		"/me",
-		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.Me)),
-	)
-
-	mux.Handle(
-		"/me/events",
-		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.MyEvents)),
-	)
-
-	mux.Handle(
-		"/me/tasks",
-		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.MyTasks)),
-	)
-
+	mux.Handle("/me", middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.Me)))
+	mux.Handle("/me/events", middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.MyEvents)))
+	mux.Handle("/me/tasks", middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.MyTasks)))
 	createEventHandler := middleware.RequireRole("admin", "organizer")(
 		http.HandlerFunc(eventHandler.Create),
 	)
-
-	mux.Handle(
-		"/events",
-		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/events", middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			eventHandler.List(w, r)
+		case http.MethodPost:
+			createEventHandler.ServeHTTP(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})),
+	)
+	mux.Handle("/users", middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.List)))
+	mux.Handle("/events/", middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "/tasks/"):
 			switch r.Method {
 			case http.MethodGet:
-				eventHandler.List(w, r)
-			case http.MethodPost:
-				createEventHandler.ServeHTTP(w, r)
+				taskHandler.Get(w, r)
+			case http.MethodPatch:
+				taskHandler.Update(w, r)
+			case http.MethodDelete:
+				taskHandler.Delete(w, r)
 			default:
 				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			}
-		})),
-	)
 
-	mux.Handle(
-		"/users",
-		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(userHandler.List)),
-	)
-
-	mux.Handle(
-		"/events/",
-		middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			switch {
-			case strings.Contains(r.URL.Path, "/tasks/"):
-				// /events/{id}/tasks/{taskID}
-				switch r.Method {
-				case http.MethodGet:
-					taskHandler.Get(w, r)
-				case http.MethodPatch:
-					taskHandler.Update(w, r)
-				case http.MethodDelete:
-					taskHandler.Delete(w, r)
-				default:
-					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				}
-
-			case strings.HasSuffix(r.URL.Path, "/tasks"):
-				switch r.Method {
-				case http.MethodGet:
-					taskHandler.List(w, r)
-				case http.MethodPost:
-					taskHandler.Create(w, r)
-				default:
-					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				}
-
-			case strings.Contains(r.URL.Path, "/participants/"):
-				// /events/{id}/participants/{pid}
-				switch r.Method {
-				case http.MethodPatch:
-					participantHandler.Update(w, r)
-				case http.MethodDelete:
-					participantHandler.Remove(w, r)
-				default:
-					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				}
-
-			case strings.HasSuffix(r.URL.Path, "/participants"):
-				switch r.Method {
-				case http.MethodGet:
-					participantHandler.List(w, r)
-				case http.MethodPost:
-					participantHandler.Add(w, r)
-				default:
-					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				}
-
-			case strings.Contains(r.URL.Path, "/agenda/"):
-				// /events/{id}/agenda/{aid}
-				switch r.Method {
-				case http.MethodPatch:
-					agendaHandler.Update(w, r)
-				case http.MethodDelete:
-					agendaHandler.Delete(w, r)
-				default:
-					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				}
-
-			case strings.HasSuffix(r.URL.Path, "/agenda"):
-				switch r.Method {
-				case http.MethodGet:
-					agendaHandler.List(w, r)
-				case http.MethodPost:
-					agendaHandler.Add(w, r)
-				default:
-					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				}
-
+		case strings.HasSuffix(r.URL.Path, "/tasks"):
+			switch r.Method {
+			case http.MethodGet:
+				taskHandler.List(w, r)
+			case http.MethodPost:
+				taskHandler.Create(w, r)
 			default:
-				// /events/{id}
-				switch r.Method {
-				case http.MethodGet:
-					eventHandler.Get(w, r)
-				case http.MethodPatch:
-					eventHandler.Update(w, r)
-				case http.MethodDelete:
-					eventHandler.Delete(w, r)
-				default:
-					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				}
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			}
-		})),
+
+		case strings.Contains(r.URL.Path, "/participants/"):
+			switch r.Method {
+			case http.MethodPatch:
+				participantHandler.Update(w, r)
+			case http.MethodDelete:
+				participantHandler.Remove(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+
+		case strings.HasSuffix(r.URL.Path, "/participants"):
+			switch r.Method {
+			case http.MethodGet:
+				participantHandler.List(w, r)
+			case http.MethodPost:
+				participantHandler.Add(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+
+		case strings.Contains(r.URL.Path, "/agenda/"):
+			switch r.Method {
+			case http.MethodPatch:
+				agendaHandler.Update(w, r)
+			case http.MethodDelete:
+				agendaHandler.Delete(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+
+		case strings.HasSuffix(r.URL.Path, "/agenda"):
+			switch r.Method {
+			case http.MethodGet:
+				agendaHandler.List(w, r)
+			case http.MethodPost:
+				agendaHandler.Add(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+
+		default:
+			switch r.Method {
+			case http.MethodGet:
+				eventHandler.Get(w, r)
+			case http.MethodPatch:
+				eventHandler.Update(w, r)
+			case http.MethodDelete:
+				eventHandler.Delete(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+		}
+	})),
 	)
 
 	return &Server{

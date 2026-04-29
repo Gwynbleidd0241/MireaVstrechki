@@ -33,9 +33,9 @@ func NewUserHandler(
 }
 
 type registerRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
+	Email    string `json:"email"    example:"petr@example.com"`
+	Password string `json:"password" example:"super-secret"`
+	Role     string `json:"role"     example:"employee" enums:"admin,organizer,employee"`
 }
 
 type registerResponse struct {
@@ -45,8 +45,8 @@ type registerResponse struct {
 }
 
 type loginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email"    example:"petr@example.com"`
+	Password string `json:"password" example:"super-secret"`
 }
 
 type loginResponse struct {
@@ -68,6 +68,15 @@ type userResponse struct {
 	Role  string `json:"role"`
 }
 
+// Register godoc
+// @Summary  Регистрация нового пользователя
+// @Tags     auth
+// @Accept   json
+// @Produce  json
+// @Param    input body     registerRequest true "Учётные данные"
+// @Success  201   {object} registerResponse
+// @Failure  400   {string} string "validation error"
+// @Router   /register [post]
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -86,7 +95,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Role:     req.Role,
 	})
 	if err != nil {
-		h.handleUserError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
@@ -97,6 +106,15 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Login godoc
+// @Summary  Вход в систему, возвращает JWT
+// @Tags     auth
+// @Accept   json
+// @Produce  json
+// @Param    input body     loginRequest true "Email и пароль"
+// @Success  200   {object} loginResponse
+// @Failure  401   {string} string "invalid email or password"
+// @Router   /login [post]
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -114,7 +132,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password: req.Password,
 	})
 	if err != nil {
-		h.handleUserError(w, err)
+		writeError(w, err, h.logger)
 		return
 	}
 
@@ -126,30 +144,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *UserHandler) handleUserError(w http.ResponseWriter, err error) {
-	switch err {
-	case service.ErrInvalidEmail:
-		http.Error(w, "invalid email", http.StatusBadRequest)
-	case service.ErrPasswordTooShort:
-		http.Error(w, "password too short", http.StatusBadRequest)
-	case service.ErrPasswordTooLong:
-		http.Error(w, "password too long", http.StatusBadRequest)
-	case service.ErrInvalidRole:
-		http.Error(w, "invalid role", http.StatusBadRequest)
-	case service.ErrInvalidCredentials:
-		http.Error(w, "invalid email or password", http.StatusUnauthorized)
-	default:
-		h.logger.Error("user handler error", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-	}
-}
-
-func writeJSON(w http.ResponseWriter, statusCode int, data any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	_ = json.NewEncoder(w).Encode(data)
-}
-
+// Me godoc
+// @Summary  Профиль текущего пользователя
+// @Tags     auth
+// @Produce  json
+// @Security BearerAuth
+// @Success  200 {object} meResponse
+// @Failure  401 {string} string "unauthorized"
+// @Router   /me [get]
 func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -164,6 +166,14 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// MyEvents godoc
+// @Summary  Встречи, в которых я создатель или участник
+// @Tags     auth
+// @Produce  json
+// @Security BearerAuth
+// @Success  200 {array}  eventResponse
+// @Failure  401 {string} string "unauthorized"
+// @Router   /me/events [get]
 func (h *UserHandler) MyEvents(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -186,26 +196,14 @@ func (h *UserHandler) MyEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
-	users, err := h.userService.List()
-	if err != nil {
-		h.logger.Error("failed to list users", zap.Error(err))
-		http.Error(w, "failed to list users", http.StatusInternalServerError)
-		return
-	}
-
-	resp := make([]userResponse, 0, len(users))
-	for _, u := range users {
-		resp = append(resp, userResponse{
-			ID:    u.ID,
-			Email: u.Email,
-			Role:  u.Role,
-		})
-	}
-
-	writeJSON(w, http.StatusOK, resp)
-}
-
+// MyTasks godoc
+// @Summary  Задачи, назначенные на меня
+// @Tags     auth
+// @Produce  json
+// @Security BearerAuth
+// @Success  200 {array}  taskResponse
+// @Failure  401 {string} string "unauthorized"
+// @Router   /me/tasks [get]
 func (h *UserHandler) MyTasks(w http.ResponseWriter, r *http.Request) {
 	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
 	if !ok {
@@ -223,6 +221,34 @@ func (h *UserHandler) MyTasks(w http.ResponseWriter, r *http.Request) {
 	resp := make([]taskResponse, 0, len(tasks))
 	for _, task := range tasks {
 		resp = append(resp, toTaskResponse(task))
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// List godoc
+// @Summary  Список всех пользователей
+// @Tags     users
+// @Produce  json
+// @Security BearerAuth
+// @Success  200 {array}  userResponse
+// @Failure  401 {string} string "unauthorized"
+// @Router   /users [get]
+func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
+	users, err := h.userService.List()
+	if err != nil {
+		h.logger.Error("failed to list users", zap.Error(err))
+		http.Error(w, "failed to list users", http.StatusInternalServerError)
+		return
+	}
+
+	resp := make([]userResponse, 0, len(users))
+	for _, u := range users {
+		resp = append(resp, userResponse{
+			ID:    u.ID,
+			Email: u.Email,
+			Role:  u.Role,
+		})
 	}
 
 	writeJSON(w, http.StatusOK, resp)
