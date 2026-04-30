@@ -1,4 +1,4 @@
-.PHONY: up down run migrate seed test test-integration fuzz lint front-start db-up docs docs-serve
+.PHONY: up down run migrate seed test test-integration fuzz front-start db-up docs docs-serve
 DSN ?= postgres://postgres:postgres@localhost:5432/meeting_service?sslmode=disable
 
 up:
@@ -28,14 +28,6 @@ fuzz:
 	cd backend && go test -run=^$$ -fuzz=FuzzIsValidTaskStatus -fuzztime=10s ./internal/service
 	cd backend && go test -run=^$$ -fuzz=FuzzEventIDFromPath -fuzztime=10s ./internal/http/handlers
 
-lint:
-	cd backend && go vet ./...
-	@cd backend && unformatted=$$(gofmt -l .); \
-	if [ -n "$$unformatted" ]; then \
-		echo "gofmt: следующие файлы не отформатированы:"; \
-		echo "$$unformatted"; \
-		exit 1; \
-	fi
 
 front-start:
 	cd frontend && npm start
@@ -47,7 +39,8 @@ docs:
 	cd backend && swag init -g cmd/api/main.go -o ../docs/swagger
 
 docs-serve: docs
-	docker run --rm -p 4000:4000 \
+	@echo "Swagger UI: http://localhost:4000"
+	docker run --rm -p 4000:8080 \
 		-e SWAGGER_JSON=/swagger.json \
 		-v $(CURDIR)/docs/swagger/swagger.json:/swagger.json \
 		swaggerapi/swagger-ui

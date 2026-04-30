@@ -71,7 +71,16 @@ func parseEventID(path string) (int64, error) {
 		return 0, strconv.ErrSyntax
 	}
 
-	return strconv.ParseInt(parts[1], 10, 64)
+	id, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	if id <= 0 {
+		return 0, strconv.ErrSyntax
+	}
+
+	return id, nil
 }
 
 func parseEventResource(path, resource string) (int64, error) {
@@ -80,7 +89,16 @@ func parseEventResource(path, resource string) (int64, error) {
 		return 0, strconv.ErrSyntax
 	}
 
-	return strconv.ParseInt(parts[1], 10, 64)
+	id, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	if id <= 0 {
+		return 0, strconv.ErrSyntax
+	}
+
+	return id, nil
 }
 
 func parseEventSubResource(path, resource string) (int64, int64, error) {
@@ -97,6 +115,10 @@ func parseEventSubResource(path, resource string) (int64, int64, error) {
 	subID, err := strconv.ParseInt(parts[3], 10, 64)
 	if err != nil {
 		return 0, 0, err
+	}
+
+	if eventID <= 0 || subID <= 0 {
+		return 0, 0, strconv.ErrSyntax
 	}
 
 	return eventID, subID, nil
