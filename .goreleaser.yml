@@ -1,0 +1,18 @@
+project_name: meeting-service
+
+builds:
+  - id: backend
+    main: ./backend/cmd/api
+    goos: [linux]
+    goarch: [amd64]
+
+dockers:
+  - image_templates:
+      - "ghcr.io/{{ .Env.GITHUB_REPOSITORY }}:{{ .Tag }}"
+    dockerfile: Dockerfile
+    skip_push: false
+
+release:
+  github:
+    owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
+    name: "{{ .ProjectName }}"

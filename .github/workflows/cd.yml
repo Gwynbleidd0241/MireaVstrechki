@@ -1,0 +1,30 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            TAG=${GITHUB_REF_NAME}
+
+            docker pull ghcr.io/${{ github.repository }}:$TAG
+
+            docker stop app || true
+            docker rm app || true
+
+            docker run -d \
+              -p 8080:8080 \
+              --name app \
+              ghcr.io/${{ github.repository }}:$TAG
