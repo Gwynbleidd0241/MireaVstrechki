@@ -4,10 +4,15 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/pressly/goose/v3"
+	"go.uber.org/zap"
 
 	"meeting-service/internal/config"
 	httpserver "meeting-service/internal/http"
@@ -59,7 +64,20 @@ func main() {
 	agendaService := service.NewAgendaService(agendaRepo, eventRepo)
 
 	server := httpserver.New(cfg, logg, userService, eventService, taskService, participantService, agendaService)
-	server.Run()
+
+	go server.Run()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	<-quit
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		logg.Fatal("server shutdown failed", zap.Error(err))
+	}
+	logg.Info("server stopped gracefully")
 }
 
 func runMigrations(dsn string) {

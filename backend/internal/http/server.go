@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -145,7 +147,12 @@ func New(
 func (s *Server) Run() {
 	s.logger.Info("server started", zap.String("addr", s.httpServer.Addr))
 
-	if err := s.httpServer.ListenAndServe(); err != nil {
+	if err := s.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		s.logger.Fatal("server failed", zap.Error(err))
 	}
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.logger.Info("shutting down server...")
+	return s.httpServer.Shutdown(ctx)
 }
