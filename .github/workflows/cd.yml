@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Prepare deploy vars
+        run: |
+          echo "REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "TAG=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -39,7 +44,5 @@ jobs:
               -p 80:80 \
               ghcr.io/${REPO}/frontend:${TAG}
         env:
-          TAG: ${{ github.event.workflow_run.head_branch }}
-          REPO: ${{ github.repository }}
           POSTGRES_DSN: ${{ secrets.POSTGRES_DSN }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}

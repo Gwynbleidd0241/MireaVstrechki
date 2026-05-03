@@ -1,11 +1,13 @@
+version: 2
+
 project_name: meeting-service
 
 builds:
   - id: backend
-    main: ./backend/cmd/api
+    dir: backend
+    main: ./cmd/api
     goos: [linux]
     goarch: [amd64]
-
 
 release:
   github:
