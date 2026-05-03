@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"errors"
 
 	"meeting-service/internal/model"
 )
@@ -66,6 +67,27 @@ func (r *UserRepository) List() ([]model.User, error) {
 	}
 
 	return users, nil
+}
+
+func (r *UserRepository) GetByID(id int64) (*model.User, error) {
+	var user model.User
+
+	err := r.db.QueryRow(
+		`SELECT id, email, password_hash, role
+		 FROM users
+		 WHERE id = $1`,
+		id,
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (r *UserRepository) GetByEmail(email string) (*model.User, error) {

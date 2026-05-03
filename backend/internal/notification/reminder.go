@@ -114,7 +114,7 @@ func buildBody(ev postgres.ReminderEvent) string {
 	}
 
 	if ev.MeetingURL != "" {
-		sb.WriteString(fmt.Sprintf("🔗 Ссылка: %s\n", ev.MeetingURL))
+		sb.WriteString(fmt.Sprintf("Ссылка: %s\n", ev.MeetingURL))
 	}
 
 	sb.WriteString("\nЭто автоматическое напоминание от Meeting Service.")

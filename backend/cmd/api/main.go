@@ -58,14 +58,15 @@ func main() {
 	taskRepo := postgres.NewTaskRepository(db)
 	taskService := service.NewTaskService(taskRepo, eventRepo)
 
+	emailSender := notification.NewEmailSender(cfg.SMTP)
+
 	participantRepo := postgres.NewParticipantRepository(db)
-	participantService := service.NewParticipantService(participantRepo, eventRepo)
+	participantService := service.NewParticipantService(participantRepo, eventRepo, userRepo, emailSender, logg)
 
 	agendaRepo := postgres.NewAgendaRepository(db)
 	agendaService := service.NewAgendaService(agendaRepo, eventRepo)
 
 	reminderRepo := postgres.NewReminderRepository(db)
-	emailSender := notification.NewEmailSender(cfg.SMTP)
 	reminderScheduler := notification.NewReminderScheduler(reminderRepo, emailSender, logg)
 
 	server := httpserver.New(cfg, logg, userService, eventService, taskService, participantService, agendaService)

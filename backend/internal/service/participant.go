@@ -3,7 +3,10 @@ package service
 import (
 	"errors"
 
+	"go.uber.org/zap"
+
 	"meeting-service/internal/model"
+	"meeting-service/internal/notification"
 	"meeting-service/internal/repository/postgres"
 )
 
@@ -17,12 +20,24 @@ var (
 type ParticipantService struct {
 	participantRepo *postgres.ParticipantRepository
 	eventRepo       *postgres.EventRepository
+	userRepo        *postgres.UserRepository
+	emailSender     *notification.EmailSender
+	logger          *zap.Logger
 }
 
-func NewParticipantService(participantRepo *postgres.ParticipantRepository, eventRepo *postgres.EventRepository) *ParticipantService {
+func NewParticipantService(
+	participantRepo *postgres.ParticipantRepository,
+	eventRepo *postgres.EventRepository,
+	userRepo *postgres.UserRepository,
+	emailSender *notification.EmailSender,
+	logger *zap.Logger,
+) *ParticipantService {
 	return &ParticipantService{
 		participantRepo: participantRepo,
 		eventRepo:       eventRepo,
+		userRepo:        userRepo,
+		emailSender:     emailSender,
+		logger:          logger,
 	}
 }
 
@@ -68,12 +83,53 @@ func (s *ParticipantService) Add(req AddParticipantRequest) (*model.Participant,
 		return nil, ErrInvalidParticipantRole
 	}
 
-	return s.participantRepo.Add(model.Participant{
+	participant, err := s.participantRepo.Add(model.Participant{
 		EventID:    req.EventID,
 		UserID:     req.UserID,
 		Role:       role,
 		RSVPStatus: "pending",
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Отправляем приглашение асинхронно, чтобы не замедлять ответ API
+	go s.sendInvite(req.EventID, req.UserID)
+
+	return participant, nil
+}
+
+func (s *ParticipantService) sendInvite(eventID, userID int64) {
+	if !s.emailSender.Enabled() {
+		return
+	}
+
+	event, err := s.eventRepo.GetByID(eventID)
+	if err != nil || event == nil {
+		s.logger.Error("invite: failed to get event", zap.Int64("event_id", eventID), zap.Error(err))
+		return
+	}
+
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil || user == nil {
+		s.logger.Error("invite: failed to get user", zap.Int64("user_id", userID), zap.Error(err))
+		return
+	}
+
+	if err := s.emailSender.SendInvite(notification.InviteData{
+		RecipientEmail: user.Email,
+		EventTitle:     event.Title,
+		StartTime:      event.StartTime,
+		Location:       event.Location,
+		MeetingURL:     event.MeetingURL,
+	}); err != nil {
+		s.logger.Error("invite: failed to send email",
+			zap.String("email", user.Email),
+			zap.Error(err),
+		)
+	} else {
+		s.logger.Info("invite sent", zap.String("email", user.Email), zap.Int64("event_id", eventID))
+	}
 }
 
 func (s *ParticipantService) Update(req UpdateParticipantRequest) (*model.Participant, error) {
