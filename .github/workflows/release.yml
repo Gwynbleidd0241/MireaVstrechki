@@ -34,9 +34,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Lowercase repo name
-        run: echo "REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -47,21 +44,73 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build & push backend image
+      - name: Build & push backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           push: true
           tags: |
-            ghcr.io/${{ env.REPO }}/backend:${{ github.ref_name }}
-            ghcr.io/${{ env.REPO }}/backend:latest
+            ghcr.io/${{ github.repository }}/backend:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}/backend:latest
 
-      - name: Build & push frontend image
+      - name: Build & push frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           push: true
           build-args: REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}
           tags: |
-            ghcr.io/${{ env.REPO }}/frontend:${{ github.ref_name }}
-            ghcr.io/${{ env.REPO }}/frontend:latest
+            ghcr.io/${{ github.repository }}/frontend:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}/frontend:latest
+
+  deploy:
+    needs: [docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: TAG,REPO,POSTGRES_DSN,JWT_SECRET,SMTP_HOST,SMTP_PORT,SMTP_USERNAME,SMTP_PASSWORD,SMTP_FROM
+          script: |
+            docker pull ghcr.io/${REPO}/backend:${TAG}
+            docker pull ghcr.io/${REPO}/frontend:${TAG}
+
+            docker stop backend frontend || true
+            docker rm backend frontend || true
+
+            docker run --rm \
+              --network host \
+              -e POSTGRES_DSN="${POSTGRES_DSN}" \
+              ghcr.io/${REPO}/backend:${TAG} migrate
+
+            docker run -d \
+              --name backend \
+              --network host \
+              --restart unless-stopped \
+              -e POSTGRES_DSN="${POSTGRES_DSN}" \
+              -e JWT_SECRET="${JWT_SECRET}" \
+              -e SMTP_HOST="${SMTP_HOST}" \
+              -e SMTP_PORT="${SMTP_PORT}" \
+              -e SMTP_USERNAME="${SMTP_USERNAME}" \
+              -e SMTP_PASSWORD="${SMTP_PASSWORD}" \
+              -e SMTP_FROM="${SMTP_FROM}" \
+              ghcr.io/${REPO}/backend:${TAG}
+
+            docker run -d \
+              --name frontend \
+              --restart unless-stopped \
+              -p 80:80 \
+              ghcr.io/${REPO}/frontend:${TAG}
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          POSTGRES_DSN: ${{ secrets.POSTGRES_DSN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}

@@ -28,17 +28,12 @@ jobs:
       - name: Unit tests
         run: go test ./...
 
-      - name: Fuzz smoke — IsValidEmail
-        run: go test -run=^$ -fuzz=FuzzIsValidEmail -fuzztime=10s ./internal/validation
-
-      - name: Fuzz smoke — ParseToken
-        run: go test -run=^$ -fuzz=FuzzParseToken -fuzztime=10s ./internal/auth
-
-      - name: Fuzz smoke — IsValidTaskStatus
-        run: go test -run=^$ -fuzz=FuzzIsValidTaskStatus -fuzztime=10s ./internal/service
-
-      - name: Fuzz smoke — eventIDFromPath
-        run: go test -run=^$ -fuzz=FuzzEventIDFromPath -fuzztime=10s ./internal/http/handlers
+      - name: Fuzz smoke
+        run: |
+          go test -run=^$ -fuzz=FuzzIsValidEmail      -fuzztime=10s ./internal/validation
+          go test -run=^$ -fuzz=FuzzParseToken        -fuzztime=10s ./internal/auth
+          go test -run=^$ -fuzz=FuzzIsValidTaskStatus -fuzztime=10s ./internal/service
+          go test -run=^$ -fuzz=FuzzEventIDFromPath   -fuzztime=10s ./internal/http/handlers
 
   frontend:
     runs-on: ubuntu-latest
