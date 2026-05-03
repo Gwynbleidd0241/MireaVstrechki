@@ -34,6 +34,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Lowercase repo
+        run: echo "REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -50,8 +53,8 @@ jobs:
           context: ./backend
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/backend:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}/backend:latest
+            ghcr.io/${{ env.REPO }}/backend:${{ github.ref_name }}
+            ghcr.io/${{ env.REPO }}/backend:latest
 
       - name: Build & push frontend
         uses: docker/build-push-action@v5
@@ -60,13 +63,16 @@ jobs:
           push: true
           build-args: REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}
           tags: |
-            ghcr.io/${{ github.repository }}/frontend:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}/frontend:latest
+            ghcr.io/${{ env.REPO }}/frontend:${{ github.ref_name }}
+            ghcr.io/${{ env.REPO }}/frontend:latest
 
   deploy:
     needs: [docker]
     runs-on: ubuntu-latest
     steps:
+      - name: Lowercase repo
+        run: echo "REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -106,7 +112,7 @@ jobs:
               ghcr.io/${REPO}/frontend:${TAG}
         env:
           TAG: ${{ github.ref_name }}
-          REPO: ${{ github.repository }}
+          REPO: ${{ env.REPO }}
           POSTGRES_DSN: ${{ secrets.POSTGRES_DSN }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}

@@ -1,5 +1,4 @@
-# Meeting Service
-
+# MireaVstrechki
 Сервис для управления рабочими встречами. Внутри каждой встречи — участники, задачи, повестка и email-уведомления.
 
 **Стек:** Go 1.25, PostgreSQL, React + TypeScript
