@@ -22,7 +22,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: TAG,REPO,POSTGRES_DSN,JWT_SECRET
+          envs: TAG,REPO,POSTGRES_DSN,JWT_SECRET,SMTP_HOST,SMTP_PORT,SMTP_USERNAME,SMTP_PASSWORD,SMTP_FROM
           script: |
             docker pull ghcr.io/${REPO}/backend:${TAG}
             docker pull ghcr.io/${REPO}/frontend:${TAG}
@@ -36,6 +36,11 @@ jobs:
               --restart unless-stopped \
               -e POSTGRES_DSN="${POSTGRES_DSN}" \
               -e JWT_SECRET="${JWT_SECRET}" \
+              -e SMTP_HOST="${SMTP_HOST}" \
+              -e SMTP_PORT="${SMTP_PORT}" \
+              -e SMTP_USERNAME="${SMTP_USERNAME}" \
+              -e SMTP_PASSWORD="${SMTP_PASSWORD}" \
+              -e SMTP_FROM="${SMTP_FROM}" \
               ghcr.io/${REPO}/backend:${TAG}
 
             docker run -d \
@@ -46,3 +51,8 @@ jobs:
         env:
           POSTGRES_DSN: ${{ secrets.POSTGRES_DSN }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}

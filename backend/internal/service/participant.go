@@ -10,6 +10,7 @@ import (
 var (
 	ErrParticipantUserRequired = errors.New("participant user required")
 	ErrInvalidParticipantRole  = errors.New("invalid participant role")
+	ErrInvalidRSVPStatus       = errors.New("invalid rsvp status")
 	ErrParticipantNotFound     = errors.New("participant not found")
 )
 
@@ -41,6 +42,14 @@ type UpdateParticipantRequest struct {
 	ActingUserRole string
 }
 
+type UpdateRSVPRequest struct {
+	EventID        int64
+	ParticipantID  int64
+	RSVPStatus     string
+	ActingUserID   int64
+	ActingUserRole string
+}
+
 func (s *ParticipantService) Add(req AddParticipantRequest) (*model.Participant, error) {
 	if err := s.checkManagePermission(req.EventID, req.ActingUserID, req.ActingUserRole); err != nil {
 		return nil, err
@@ -60,9 +69,10 @@ func (s *ParticipantService) Add(req AddParticipantRequest) (*model.Participant,
 	}
 
 	return s.participantRepo.Add(model.Participant{
-		EventID: req.EventID,
-		UserID:  req.UserID,
-		Role:    role,
+		EventID:    req.EventID,
+		UserID:     req.UserID,
+		Role:       role,
+		RSVPStatus: "pending",
 	})
 }
 
@@ -85,6 +95,27 @@ func (s *ParticipantService) Update(req UpdateParticipantRequest) (*model.Partic
 	}
 
 	return s.participantRepo.UpdateRole(req.ParticipantID, req.Role)
+}
+
+func (s *ParticipantService) UpdateRSVP(req UpdateRSVPRequest) (*model.Participant, error) {
+	participant, err := s.participantRepo.GetByID(req.ParticipantID)
+	if err != nil {
+		return nil, err
+	}
+
+	if participant == nil || participant.EventID != req.EventID {
+		return nil, ErrParticipantNotFound
+	}
+
+	if req.ActingUserRole != "admin" && participant.UserID != req.ActingUserID {
+		return nil, ErrPermissionDenied
+	}
+
+	if !isValidRSVPStatus(req.RSVPStatus) {
+		return nil, ErrInvalidRSVPStatus
+	}
+
+	return s.participantRepo.UpdateRSVP(req.ParticipantID, req.RSVPStatus)
 }
 
 func (s *ParticipantService) Remove(eventID, participantID, actingUserID int64, actingUserRole string) error {
@@ -131,4 +162,8 @@ func (s *ParticipantService) checkManagePermission(eventID, actingUserID int64, 
 
 func isValidParticipantRole(role string) bool {
 	return role == "participant" || role == "responsible"
+}
+
+func isValidRSVPStatus(status string) bool {
+	return status == "pending" || status == "accepted" || status == "declined"
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Event, getEvent } from "../../api/events";
+import { Event, EventStatus, getEvent } from "../../api/events";
 import { friendlyError } from "../../api/errors";
 import {
   createTask,
@@ -14,7 +14,9 @@ import {
   getParticipants,
   Participant,
   removeParticipant,
+  RSVPStatus,
   updateParticipant,
+  updateRSVP,
 } from "../../api/participants";
 import {
   AgendaItem,
@@ -27,7 +29,19 @@ import { getUsers, User } from "../../api/users";
 import { useAuth } from "../../contexts/AuthContext";
 import "./EventDetailPage.css";
 
-const statusLabel: Record<Task["status"], string> = {
+const statusLabel: Record<EventStatus, string> = {
+  scheduled: "Запланировано",
+  cancelled: "Отменено",
+  completed: "Завершено",
+};
+
+const statusClass: Record<EventStatus, string> = {
+  scheduled: "status--scheduled",
+  cancelled: "status--cancelled",
+  completed: "status--completed",
+};
+
+const taskStatusLabel: Record<Task["status"], string> = {
   todo: "К выполнению",
   in_progress: "В работе",
   done: "Готово",
@@ -36,6 +50,18 @@ const statusLabel: Record<Task["status"], string> = {
 const roleLabel: Record<Participant["role"], string> = {
   participant: "Участник",
   responsible: "Ответственный",
+};
+
+const rsvpLabel: Record<RSVPStatus, string> = {
+  pending: "Ожидает",
+  accepted: "Принял",
+  declined: "Отклонил",
+};
+
+const rsvpClass: Record<RSVPStatus, string> = {
+  pending: "rsvp--pending",
+  accepted: "rsvp--accepted",
+  declined: "rsvp--declined",
 };
 
 export function EventDetailPage() {
@@ -145,9 +171,7 @@ export function EventDetailPage() {
     e.preventDefault();
     setParticipantError("");
 
-    if (!newParticipantUserId) {
-      return;
-    }
+    if (!newParticipantUserId) return;
 
     try {
       const created = await addParticipant(eventId, {
@@ -164,16 +188,28 @@ export function EventDetailPage() {
 
   async function handleChangeParticipantRole(
     participant: Participant,
-    role: Participant["role"],
+    newRole: Participant["role"],
   ) {
     setParticipantError("");
     try {
-      const updated = await updateParticipant(eventId, participant.id, { role });
+      const updated = await updateParticipant(eventId, participant.id, { role: newRole });
       setParticipants((prev) =>
         prev.map((p) => (p.id === participant.id ? updated : p)),
       );
     } catch (err) {
       setParticipantError(friendlyError(err, "Не удалось обновить роль"));
+    }
+  }
+
+  async function handleRSVP(participantId: number, rsvpStatus: RSVPStatus) {
+    setParticipantError("");
+    try {
+      const updated = await updateRSVP(eventId, participantId, { rsvp_status: rsvpStatus });
+      setParticipants((prev) =>
+        prev.map((p) => (p.id === participantId ? updated : p)),
+      );
+    } catch (err) {
+      setParticipantError(friendlyError(err, "Не удалось обновить статус"));
     }
   }
 
@@ -253,6 +289,8 @@ export function EventDetailPage() {
   const isCreator = userId != null && event.creator_id === userId;
   const canManageEvent = isAdmin || isCreator;
 
+  const myParticipation = participants.find((p) => p.user_id === userId);
+
   function canEditTask(task: Task) {
     return (
       isAdmin ||
@@ -268,17 +306,62 @@ export function EventDetailPage() {
       </Link>
 
       <header className="event-detail-header">
-        <h1>{event.title}</h1>
+        <div className="event-detail-header__title-row">
+          <h1>{event.title}</h1>
+          <span className={`status-badge ${statusClass[event.status]}`}>
+            {statusLabel[event.status]}
+          </span>
+        </div>
         <p className="event-detail-time">
           {new Date(event.start_time).toLocaleString()} —{" "}
           {new Date(event.end_time).toLocaleString()}
         </p>
+        {event.location && (
+          <p className="event-detail-meta">📍 {event.location}</p>
+        )}
+        {event.meeting_url && (
+          <p className="event-detail-meta">
+            🔗{" "}
+            <a href={event.meeting_url} target="_blank" rel="noopener noreferrer">
+              Ссылка на встречу
+            </a>
+          </p>
+        )}
         <p className="event-detail-description">
           {event.description || "Без описания"}
         </p>
         <p className="event-detail-creator">
           Создал: {userById.get(event.creator_id)?.email ?? `#${event.creator_id}`}
         </p>
+
+        {myParticipation && (
+          <div className="rsvp-block">
+            <span className="rsvp-block__label">
+              Мой статус:{" "}
+              <span className={`rsvp-badge ${rsvpClass[myParticipation.rsvp_status]}`}>
+                {rsvpLabel[myParticipation.rsvp_status]}
+              </span>
+            </span>
+            <div className="rsvp-block__actions">
+              {myParticipation.rsvp_status !== "accepted" && (
+                <button
+                  className="rsvp-btn rsvp-btn--accept"
+                  onClick={() => handleRSVP(myParticipation.id, "accepted")}
+                >
+                  Принять
+                </button>
+              )}
+              {myParticipation.rsvp_status !== "declined" && (
+                <button
+                  className="rsvp-btn rsvp-btn--decline"
+                  onClick={() => handleRSVP(myParticipation.id, "declined")}
+                >
+                  Отклонить
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       <div className="event-detail-grid">
@@ -302,33 +385,25 @@ export function EventDetailPage() {
                               className="task-row__status"
                               value={t.status}
                               onChange={(e) =>
-                                handleChangeStatus(
-                                  t,
-                                  e.target.value as Task["status"],
-                                )
+                                handleChangeStatus(t, e.target.value as Task["status"])
                               }
                             >
-                              <option value="todo">{statusLabel.todo}</option>
-                              <option value="in_progress">
-                                {statusLabel.in_progress}
-                              </option>
-                              <option value="done">{statusLabel.done}</option>
+                              <option value="todo">{taskStatusLabel.todo}</option>
+                              <option value="in_progress">{taskStatusLabel.in_progress}</option>
+                              <option value="done">{taskStatusLabel.done}</option>
                             </select>
                           ) : (
                             <span className="task-row__status task-row__status--readonly">
-                              {statusLabel[t.status]}
+                              {taskStatusLabel[t.status]}
                             </span>
                           )}
                           {t.assignee_id != null && (
                             <span>
-                              {userById.get(t.assignee_id)?.email ??
-                                `#${t.assignee_id}`}
+                              {userById.get(t.assignee_id)?.email ?? `#${t.assignee_id}`}
                             </span>
                           )}
                           {t.due_date && (
-                            <span>
-                              до {new Date(t.due_date).toLocaleDateString()}
-                            </span>
+                            <span>до {new Date(t.due_date).toLocaleDateString()}</span>
                           )}
                         </div>
                       </div>
@@ -362,9 +437,7 @@ export function EventDetailPage() {
               >
                 <option value="">Без исполнителя</option>
                 {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.email}
-                  </option>
+                  <option key={u.id} value={u.id}>{u.email}</option>
                 ))}
               </select>
               <input
@@ -391,15 +464,15 @@ export function EventDetailPage() {
                     {userById.get(p.user_id)?.email ?? `#${p.user_id}`}
                   </span>
                   <div className="participant-item__actions">
+                    <span className={`rsvp-badge rsvp-badge--sm ${rsvpClass[p.rsvp_status]}`}>
+                      {rsvpLabel[p.rsvp_status]}
+                    </span>
                     {canManageEvent ? (
                       <select
                         className="participant-role-select"
                         value={p.role}
                         onChange={(e) =>
-                          handleChangeParticipantRole(
-                            p,
-                            e.target.value as Participant["role"],
-                          )
+                          handleChangeParticipantRole(p, e.target.value as Participant["role"])
                         }
                       >
                         <option value="participant">{roleLabel.participant}</option>
@@ -432,9 +505,7 @@ export function EventDetailPage() {
               >
                 <option value="">Выберите пользователя</option>
                 {availableUsers.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.email}
-                  </option>
+                  <option key={u.id} value={u.id}>{u.email}</option>
                 ))}
               </select>
               <select
@@ -469,11 +540,7 @@ export function EventDetailPage() {
                     <button
                       className="agenda-item__toggle"
                       onClick={() => handleToggleAgendaDone(a)}
-                      title={
-                        a.is_done
-                          ? "Отметить как не выполнено"
-                          : "Отметить как обсуждено"
-                      }
+                      title={a.is_done ? "Отметить как не выполнено" : "Отметить как обсуждено"}
                     >
                       {a.is_done ? "✓" : a.position}
                     </button>
@@ -485,14 +552,10 @@ export function EventDetailPage() {
                   <div className="agenda-item__body">
                     <div className="agenda-item__title">{a.title}</div>
                     {a.description && (
-                      <div className="agenda-item__description">
-                        {a.description}
-                      </div>
+                      <div className="agenda-item__description">{a.description}</div>
                     )}
                     {a.duration_minutes != null && (
-                      <div className="agenda-item__duration">
-                        ≈ {a.duration_minutes} мин
-                      </div>
+                      <div className="agenda-item__duration">≈ {a.duration_minutes} мин</div>
                     )}
                   </div>
                   {canManageEvent && (

@@ -19,7 +19,7 @@ func (r *ParticipantRepository) GetByID(id int64) (*model.Participant, error) {
 	var participant model.Participant
 
 	err := r.db.QueryRow(
-		`SELECT id, event_id, user_id, role, created_at
+		`SELECT id, event_id, user_id, role, rsvp_status, created_at
 		 FROM event_participants
 		 WHERE id = $1`,
 		id,
@@ -28,6 +28,7 @@ func (r *ParticipantRepository) GetByID(id int64) (*model.Participant, error) {
 		&participant.EventID,
 		&participant.UserID,
 		&participant.Role,
+		&participant.RSVPStatus,
 		&participant.CreatedAt,
 	)
 
@@ -49,7 +50,7 @@ func (r *ParticipantRepository) UpdateRole(id int64, role string) (*model.Partic
 		`UPDATE event_participants
 		 SET role = $1
 		 WHERE id = $2
-		 RETURNING id, event_id, user_id, role, created_at`,
+		 RETURNING id, event_id, user_id, role, rsvp_status, created_at`,
 		role,
 		id,
 	).Scan(
@@ -57,6 +58,33 @@ func (r *ParticipantRepository) UpdateRole(id int64, role string) (*model.Partic
 		&updated.EventID,
 		&updated.UserID,
 		&updated.Role,
+		&updated.RSVPStatus,
+		&updated.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &updated, nil
+}
+
+func (r *ParticipantRepository) UpdateRSVP(id int64, rsvpStatus string) (*model.Participant, error) {
+	var updated model.Participant
+
+	err := r.db.QueryRow(
+		`UPDATE event_participants
+		 SET rsvp_status = $1
+		 WHERE id = $2
+		 RETURNING id, event_id, user_id, role, rsvp_status, created_at`,
+		rsvpStatus,
+		id,
+	).Scan(
+		&updated.ID,
+		&updated.EventID,
+		&updated.UserID,
+		&updated.Role,
+		&updated.RSVPStatus,
 		&updated.CreatedAt,
 	)
 
@@ -76,17 +104,19 @@ func (r *ParticipantRepository) Add(participant model.Participant) (*model.Parti
 	var created model.Participant
 
 	err := r.db.QueryRow(
-		`INSERT INTO event_participants (event_id, user_id, role)
-		 VALUES ($1, $2, $3)
-		 RETURNING id, event_id, user_id, role, created_at`,
+		`INSERT INTO event_participants (event_id, user_id, role, rsvp_status)
+		 VALUES ($1, $2, $3, $4)
+		 RETURNING id, event_id, user_id, role, rsvp_status, created_at`,
 		participant.EventID,
 		participant.UserID,
 		participant.Role,
+		participant.RSVPStatus,
 	).Scan(
 		&created.ID,
 		&created.EventID,
 		&created.UserID,
 		&created.Role,
+		&created.RSVPStatus,
 		&created.CreatedAt,
 	)
 
@@ -99,7 +129,7 @@ func (r *ParticipantRepository) Add(participant model.Participant) (*model.Parti
 
 func (r *ParticipantRepository) ListByEventID(eventID int64) ([]model.Participant, error) {
 	rows, err := r.db.Query(
-		`SELECT id, event_id, user_id, role, created_at
+		`SELECT id, event_id, user_id, role, rsvp_status, created_at
 		 FROM event_participants
 		 WHERE event_id = $1
 		 ORDER BY created_at ASC`,
@@ -120,6 +150,7 @@ func (r *ParticipantRepository) ListByEventID(eventID int64) ([]model.Participan
 			&participant.EventID,
 			&participant.UserID,
 			&participant.Role,
+			&participant.RSVPStatus,
 			&participant.CreatedAt,
 		); err != nil {
 			return nil, err

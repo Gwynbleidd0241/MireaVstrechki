@@ -26,15 +26,21 @@ func NewEventHandler(eventService *service.EventService, logger *zap.Logger) *Ev
 }
 
 type createEventRequest struct {
-	Title       string `json:"title"       example:"Планирование спринта"`
-	Description string `json:"description" example:"Расставляем приоритеты"`
-	StartTime   string `json:"start_time"  example:"2026-05-01T10:00:00Z"`
-	EndTime     string `json:"end_time"    example:"2026-05-01T11:00:00Z"`
+	Title       string `json:"title"        example:"Планирование спринта"`
+	Description string `json:"description"  example:"Расставляем приоритеты"`
+	Status      string `json:"status"       example:"scheduled" enums:"scheduled,cancelled,completed"`
+	Location    string `json:"location"     example:"Переговорная №2"`
+	MeetingURL  string `json:"meeting_url"  example:"https://meet.google.com/abc-defg-hij"`
+	StartTime   string `json:"start_time"   example:"2026-05-01T10:00:00Z"`
+	EndTime     string `json:"end_time"     example:"2026-05-01T11:00:00Z"`
 }
 
 type updateEventRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Status      string `json:"status"      enums:"scheduled,cancelled,completed"`
+	Location    string `json:"location"`
+	MeetingURL  string `json:"meeting_url"`
 	StartTime   string `json:"start_time"`
 	EndTime     string `json:"end_time"`
 }
@@ -43,6 +49,9 @@ type eventResponse struct {
 	ID          int64  `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Status      string `json:"status"`
+	Location    string `json:"location"`
+	MeetingURL  string `json:"meeting_url"`
 	StartTime   string `json:"start_time"`
 	EndTime     string `json:"end_time"`
 	CreatorID   int64  `json:"creator_id"`
@@ -88,6 +97,9 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	event, err := h.eventService.Create(service.CreateEventRequest{
 		Title:       req.Title,
 		Description: req.Description,
+		Status:      req.Status,
+		Location:    req.Location,
+		MeetingURL:  req.MeetingURL,
 		StartTime:   startTime,
 		EndTime:     endTime,
 		CreatorID:   claims.UserID,
@@ -174,6 +186,9 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 		EventID:     eventID,
 		Title:       req.Title,
 		Description: req.Description,
+		Status:      req.Status,
+		Location:    req.Location,
+		MeetingURL:  req.MeetingURL,
 		StartTime:   startTime,
 		EndTime:     endTime,
 		UserID:      claims.UserID,
@@ -245,6 +260,9 @@ func toEventResponse(event model.Event) eventResponse {
 		ID:          event.ID,
 		Title:       event.Title,
 		Description: event.Description,
+		Status:      event.Status,
+		Location:    event.Location,
+		MeetingURL:  event.MeetingURL,
 		StartTime:   event.StartTime.Format(time.RFC3339),
 		EndTime:     event.EndTime.Format(time.RFC3339),
 		CreatorID:   event.CreatorID,

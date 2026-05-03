@@ -372,3 +372,97 @@
 .inline-form button:hover {
     background: #4f46e5;
 }
+
+.event-detail-header__title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.event-detail-header__title-row h1 {
+    margin: 0;
+}
+
+.event-detail-meta {
+    margin: 4px 0 0;
+    color: #475569;
+    font-size: 14px;
+}
+
+.event-detail-meta a {
+    color: #6366f1;
+    text-decoration: none;
+}
+
+.event-detail-meta a:hover {
+    text-decoration: underline;
+}
+
+.status-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.status--scheduled { background: #e0f2fe; color: #0369a1; }
+.status--cancelled { background: #fee2e2; color: #b91c1c; }
+.status--completed { background: #dcfce7; color: #15803d; }
+
+.rsvp-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.rsvp-block__label {
+    font-size: 14px;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rsvp-block__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.rsvp-btn {
+    border: 0;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.rsvp-btn:hover { opacity: 0.85; }
+
+.rsvp-btn--accept  { background: #dcfce7; color: #15803d; }
+.rsvp-btn--decline { background: #fee2e2; color: #b91c1c; }
+
+.rsvp-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.rsvp-badge--sm { font-size: 11px; }
+
+.rsvp--pending  { background: #fef9c3; color: #854d0e; }
+.rsvp--accepted { background: #dcfce7; color: #15803d; }
+.rsvp--declined { background: #fee2e2; color: #b91c1c; }

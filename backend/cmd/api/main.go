@@ -17,6 +17,7 @@ import (
 	"meeting-service/internal/config"
 	httpserver "meeting-service/internal/http"
 	"meeting-service/internal/logger"
+	"meeting-service/internal/notification"
 	"meeting-service/internal/repository/postgres"
 	"meeting-service/internal/seed"
 	"meeting-service/internal/service"
@@ -63,18 +64,28 @@ func main() {
 	agendaRepo := postgres.NewAgendaRepository(db)
 	agendaService := service.NewAgendaService(agendaRepo, eventRepo)
 
+	reminderRepo := postgres.NewReminderRepository(db)
+	emailSender := notification.NewEmailSender(cfg.SMTP)
+	reminderScheduler := notification.NewReminderScheduler(reminderRepo, emailSender, logg)
+
 	server := httpserver.New(cfg, logg, userService, eventService, taskService, participantService, agendaService)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	go server.Run()
+	go reminderScheduler.Start(ctx)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	cancel()
 
-	if err := server.Shutdown(ctx); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		logg.Fatal("server shutdown failed", zap.Error(err))
 	}
 	logg.Info("server stopped gracefully")

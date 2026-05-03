@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -34,12 +35,17 @@ type updateParticipantRequest struct {
 	Role string `json:"role" enums:"participant,responsible"`
 }
 
+type updateRSVPRequest struct {
+	RSVPStatus string `json:"rsvp_status" enums:"pending,accepted,declined"`
+}
+
 type participantResponse struct {
-	ID        int64  `json:"id"`
-	EventID   int64  `json:"event_id"`
-	UserID    int64  `json:"user_id"`
-	Role      string `json:"role"`
-	CreatedAt string `json:"created_at"`
+	ID         int64  `json:"id"`
+	EventID    int64  `json:"event_id"`
+	UserID     int64  `json:"user_id"`
+	Role       string `json:"role"`
+	RSVPStatus string `json:"rsvp_status"`
+	CreatedAt  string `json:"created_at"`
 }
 
 // Add godoc
@@ -135,6 +141,53 @@ func (h *ParticipantHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toParticipantResponse(*participant))
 }
 
+// UpdateRSVP godoc
+// @Summary  Ответить на приглашение (RSVP)
+// @Tags     participants
+// @Accept   json
+// @Produce  json
+// @Security BearerAuth
+// @Param    id            path     int              true "Event ID"
+// @Param    participantId path     int              true "Participant ID"
+// @Param    input         body     updateRSVPRequest true "Статус RSVP"
+// @Success  200           {object} participantResponse
+// @Failure  403           {string} string "permission denied"
+// @Failure  404           {string} string "participant not found"
+// @Router   /events/{id}/participants/{participantId}/rsvp [patch]
+func (h *ParticipantHandler) UpdateRSVP(w http.ResponseWriter, r *http.Request) {
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	eventID, participantID, err := parseEventSubResource(strings.TrimSuffix(r.URL.Path, "/rsvp"), "participants")
+	if err != nil {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
+
+	var req updateRSVPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	participant, err := h.participantService.UpdateRSVP(service.UpdateRSVPRequest{
+		EventID:        eventID,
+		ParticipantID:  participantID,
+		RSVPStatus:     req.RSVPStatus,
+		ActingUserID:   claims.UserID,
+		ActingUserRole: claims.Role,
+	})
+	if err != nil {
+		writeError(w, err, h.logger)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toParticipantResponse(*participant))
+}
+
 // Remove godoc
 // @Summary  Удалить участника из встречи
 // @Tags     participants
@@ -198,10 +251,11 @@ func (h *ParticipantHandler) List(w http.ResponseWriter, r *http.Request) {
 
 func toParticipantResponse(participant model.Participant) participantResponse {
 	return participantResponse{
-		ID:        participant.ID,
-		EventID:   participant.EventID,
-		UserID:    participant.UserID,
-		Role:      participant.Role,
-		CreatedAt: participant.CreatedAt.Format(time.RFC3339),
+		ID:         participant.ID,
+		EventID:    participant.EventID,
+		UserID:     participant.UserID,
+		Role:       participant.Role,
+		RSVPStatus: participant.RSVPStatus,
+		CreatedAt:  participant.CreatedAt.Format(time.RFC3339),
 	}
 }

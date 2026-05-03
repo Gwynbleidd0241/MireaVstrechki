@@ -15,9 +15,16 @@ var (
 	ErrEventTitleTooLong       = errors.New("event title too long")
 	ErrEventDescriptionTooLong = errors.New("event description too long")
 	ErrInvalidEventTime        = errors.New("invalid event time")
+	ErrInvalidEventStatus      = errors.New("invalid event status")
 	ErrEventNotFound           = errors.New("event not found")
 	ErrPermissionDenied        = errors.New("permission denied")
 )
+
+var validEventStatuses = map[string]bool{
+	"scheduled": true,
+	"cancelled": true,
+	"completed": true,
+}
 
 type EventService struct {
 	eventRepo *postgres.EventRepository
@@ -30,6 +37,9 @@ func NewEventService(eventRepo *postgres.EventRepository) *EventService {
 type CreateEventRequest struct {
 	Title       string
 	Description string
+	Status      string
+	Location    string
+	MeetingURL  string
 	StartTime   time.Time
 	EndTime     time.Time
 	CreatorID   int64
@@ -40,6 +50,9 @@ type UpdateEventRequest struct {
 	EventID     int64
 	Title       string
 	Description string
+	Status      string
+	Location    string
+	MeetingURL  string
 	StartTime   time.Time
 	EndTime     time.Time
 	UserID      int64
@@ -68,9 +81,21 @@ func (s *EventService) Create(req CreateEventRequest) (*model.Event, error) {
 		return nil, ErrInvalidEventTime
 	}
 
+	status := req.Status
+	if status == "" {
+		status = "scheduled"
+	}
+
+	if !validEventStatuses[status] {
+		return nil, ErrInvalidEventStatus
+	}
+
 	return s.eventRepo.Create(model.Event{
 		Title:       title,
 		Description: strings.TrimSpace(req.Description),
+		Status:      status,
+		Location:    strings.TrimSpace(req.Location),
+		MeetingURL:  strings.TrimSpace(req.MeetingURL),
 		StartTime:   req.StartTime,
 		EndTime:     req.EndTime,
 		CreatorID:   req.CreatorID,
@@ -121,10 +146,22 @@ func (s *EventService) Update(req UpdateEventRequest) (*model.Event, error) {
 		return nil, ErrInvalidEventTime
 	}
 
+	status := req.Status
+	if status == "" {
+		status = event.Status
+	}
+
+	if !validEventStatuses[status] {
+		return nil, ErrInvalidEventStatus
+	}
+
 	return s.eventRepo.Update(model.Event{
 		ID:          req.EventID,
 		Title:       title,
 		Description: strings.TrimSpace(req.Description),
+		Status:      status,
+		Location:    strings.TrimSpace(req.Location),
+		MeetingURL:  strings.TrimSpace(req.MeetingURL),
 		StartTime:   req.StartTime,
 		EndTime:     req.EndTime,
 	})

@@ -19,7 +19,7 @@ func (r *EventRepository) GetByID(id int64) (*model.Event, error) {
 	var event model.Event
 
 	err := r.db.QueryRow(
-		`SELECT id, title, description, start_time, end_time, creator_id, created_at
+		`SELECT id, title, description, status, location, meeting_url, start_time, end_time, creator_id, created_at
 		 FROM events
 		 WHERE id = $1`,
 		id,
@@ -27,6 +27,9 @@ func (r *EventRepository) GetByID(id int64) (*model.Event, error) {
 		&event.ID,
 		&event.Title,
 		&event.Description,
+		&event.Status,
+		&event.Location,
+		&event.MeetingURL,
 		&event.StartTime,
 		&event.EndTime,
 		&event.CreatorID,
@@ -49,11 +52,15 @@ func (r *EventRepository) Update(event model.Event) (*model.Event, error) {
 
 	err := r.db.QueryRow(
 		`UPDATE events
-		 SET title = $1, description = $2, start_time = $3, end_time = $4
-		 WHERE id = $5
-		 RETURNING id, title, description, start_time, end_time, creator_id, created_at`,
+		 SET title = $1, description = $2, status = $3, location = $4, meeting_url = $5,
+		     start_time = $6, end_time = $7
+		 WHERE id = $8
+		 RETURNING id, title, description, status, location, meeting_url, start_time, end_time, creator_id, created_at`,
 		event.Title,
 		event.Description,
+		event.Status,
+		event.Location,
+		event.MeetingURL,
 		event.StartTime,
 		event.EndTime,
 		event.ID,
@@ -61,6 +68,9 @@ func (r *EventRepository) Update(event model.Event) (*model.Event, error) {
 		&updated.ID,
 		&updated.Title,
 		&updated.Description,
+		&updated.Status,
+		&updated.Location,
+		&updated.MeetingURL,
 		&updated.StartTime,
 		&updated.EndTime,
 		&updated.CreatorID,
@@ -83,11 +93,14 @@ func (r *EventRepository) Create(event model.Event) (*model.Event, error) {
 	var created model.Event
 
 	err := r.db.QueryRow(
-		`INSERT INTO events (title, description, start_time, end_time, creator_id)
-		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING id, title, description, start_time, end_time, creator_id, created_at`,
+		`INSERT INTO events (title, description, status, location, meeting_url, start_time, end_time, creator_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		 RETURNING id, title, description, status, location, meeting_url, start_time, end_time, creator_id, created_at`,
 		event.Title,
 		event.Description,
+		event.Status,
+		event.Location,
+		event.MeetingURL,
 		event.StartTime,
 		event.EndTime,
 		event.CreatorID,
@@ -95,6 +108,9 @@ func (r *EventRepository) Create(event model.Event) (*model.Event, error) {
 		&created.ID,
 		&created.Title,
 		&created.Description,
+		&created.Status,
+		&created.Location,
+		&created.MeetingURL,
 		&created.StartTime,
 		&created.EndTime,
 		&created.CreatorID,
@@ -110,7 +126,8 @@ func (r *EventRepository) Create(event model.Event) (*model.Event, error) {
 
 func (r *EventRepository) ListForUser(userID int64) ([]model.Event, error) {
 	rows, err := r.db.Query(
-		`SELECT DISTINCT e.id, e.title, e.description, e.start_time, e.end_time, e.creator_id, e.created_at
+		`SELECT DISTINCT e.id, e.title, e.description, e.status, e.location, e.meeting_url,
+		        e.start_time, e.end_time, e.creator_id, e.created_at
 		 FROM events e
 		 LEFT JOIN event_participants p ON p.event_id = e.id
 		 WHERE e.creator_id = $1 OR p.user_id = $1
@@ -131,6 +148,9 @@ func (r *EventRepository) ListForUser(userID int64) ([]model.Event, error) {
 			&event.ID,
 			&event.Title,
 			&event.Description,
+			&event.Status,
+			&event.Location,
+			&event.MeetingURL,
 			&event.StartTime,
 			&event.EndTime,
 			&event.CreatorID,
@@ -151,7 +171,8 @@ func (r *EventRepository) ListForUser(userID int64) ([]model.Event, error) {
 
 func (r *EventRepository) List() ([]model.Event, error) {
 	rows, err := r.db.Query(
-		`SELECT id, title, description, start_time, end_time, creator_id, created_at
+		`SELECT id, title, description, status, location, meeting_url,
+		        start_time, end_time, creator_id, created_at
 		 FROM events
 		 ORDER BY start_time ASC`,
 	)
@@ -169,6 +190,9 @@ func (r *EventRepository) List() ([]model.Event, error) {
 			&event.ID,
 			&event.Title,
 			&event.Description,
+			&event.Status,
+			&event.Location,
+			&event.MeetingURL,
 			&event.StartTime,
 			&event.EndTime,
 			&event.CreatorID,

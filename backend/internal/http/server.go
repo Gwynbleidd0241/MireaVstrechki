@@ -80,6 +80,14 @@ func New(
 				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			}
 
+		case strings.Contains(r.URL.Path, "/participants/") && strings.HasSuffix(r.URL.Path, "/rsvp"):
+			switch r.Method {
+			case http.MethodPatch:
+				participantHandler.UpdateRSVP(w, r)
+			default:
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
+
 		case strings.Contains(r.URL.Path, "/participants/"):
 			switch r.Method {
 			case http.MethodPatch:

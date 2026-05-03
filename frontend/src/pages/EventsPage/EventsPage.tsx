@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { createEvent, Event, getEvents } from "../../api/events";
+import { createEvent, Event, EventStatus, getEvents } from "../../api/events";
 import { friendlyError } from "../../api/errors";
 import { useAuth } from "../../contexts/AuthContext";
 import "./EventsPage.css";
+
+const statusLabel: Record<EventStatus, string> = {
+  scheduled: "Запланировано",
+  cancelled: "Отменено",
+  completed: "Завершено",
+};
+
+const statusClass: Record<EventStatus, string> = {
+  scheduled: "status--scheduled",
+  cancelled: "status--cancelled",
+  completed: "status--completed",
+};
 
 export function EventsPage() {
   const { role } = useAuth();
@@ -12,6 +24,8 @@ export function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState("");
   const [startTime, setStartTime] = useState("2026-04-27T10:00");
   const [endTime, setEndTime] = useState("2026-04-27T11:00");
   const [error, setError] = useState("");
@@ -37,12 +51,16 @@ export function EventsPage() {
       await createEvent({
         title,
         description,
+        location,
+        meeting_url: meetingUrl,
         start_time: new Date(startTime).toISOString(),
         end_time: new Date(endTime).toISOString(),
       });
 
       setTitle("");
       setDescription("");
+      setLocation("");
+      setMeetingUrl("");
       await loadEvents();
     } catch (err) {
       setError(friendlyError(err, "Не удалось создать мероприятие"));
@@ -68,12 +86,25 @@ export function EventsPage() {
                 placeholder="Название"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                required
               />
 
               <textarea
                 placeholder="Описание"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+              />
+
+              <input
+                placeholder="Место проведения (необязательно)"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+
+              <input
+                placeholder="Ссылка на онлайн-встречу (необязательно)"
+                value={meetingUrl}
+                onChange={(e) => setMeetingUrl(e.target.value)}
               />
 
               <label>
@@ -115,12 +146,24 @@ export function EventsPage() {
                   key={event.id}
                 >
                   <article className="event-card">
-                    <h3>{event.title}</h3>
+                    <div className="event-card__header">
+                      <h3>{event.title}</h3>
+                      <span
+                        className={`status-badge ${statusClass[event.status]}`}
+                      >
+                        {statusLabel[event.status]}
+                      </span>
+                    </div>
                     <p>{event.description || "Без описания"}</p>
                     <span>
                       {new Date(event.start_time).toLocaleString()} —{" "}
                       {new Date(event.end_time).toLocaleString()}
                     </span>
+                    {event.location && (
+                      <span className="event-card__location">
+                        📍 {event.location}
+                      </span>
+                    )}
                   </article>
                 </Link>
               ))

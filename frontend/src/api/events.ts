@@ -1,9 +1,14 @@
 import { apiRequest } from "./client";
 
+export type EventStatus = "scheduled" | "cancelled" | "completed";
+
 export type Event = {
   id: number;
   title: string;
   description: string;
+  status: EventStatus;
+  location: string;
+  meeting_url: string;
   start_time: string;
   end_time: string;
   creator_id: number;
@@ -13,6 +18,9 @@ export type Event = {
 export type CreateEventRequest = {
   title: string;
   description: string;
+  status?: EventStatus;
+  location?: string;
+  meeting_url?: string;
   start_time: string;
   end_time: string;
 };
