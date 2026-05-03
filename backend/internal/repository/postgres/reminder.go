@@ -5,14 +5,13 @@ import (
 	"time"
 )
 
-// ReminderEvent содержит данные события и список email-адресов всех участников.
 type ReminderEvent struct {
 	EventID    int64
 	Title      string
 	StartTime  time.Time
 	Location   string
 	MeetingURL string
-	Emails     []string // email организатора + всех участников
+	Emails     []string
 }
 
 type ReminderRepository struct {
@@ -23,8 +22,6 @@ func NewReminderRepository(db *sql.DB) *ReminderRepository {
 	return &ReminderRepository{db: db}
 }
 
-// FindUpcoming возвращает события, начинающиеся в окне [from, to],
-// для которых напоминание ещё не было отправлено.
 func (r *ReminderRepository) FindUpcoming(from, to time.Time) ([]ReminderEvent, error) {
 	rows, err := r.db.Query(
 		`SELECT DISTINCT e.id, e.title, e.start_time, e.location, e.meeting_url
@@ -54,7 +51,6 @@ func (r *ReminderRepository) FindUpcoming(from, to time.Time) ([]ReminderEvent, 
 		return nil, err
 	}
 
-	// Для каждого события собираем email-адреса: организатор + участники
 	for i, ev := range events {
 		emails, err := r.collectEmails(ev.EventID)
 		if err != nil {
@@ -66,8 +62,6 @@ func (r *ReminderRepository) FindUpcoming(from, to time.Time) ([]ReminderEvent, 
 	return events, nil
 }
 
-// collectEmails возвращает дедуплицированный список email-адресов
-// организатора события и всех его участников.
 func (r *ReminderRepository) collectEmails(eventID int64) ([]string, error) {
 	rows, err := r.db.Query(
 		`SELECT DISTINCT u.email
@@ -92,8 +86,6 @@ func (r *ReminderRepository) collectEmails(eventID int64) ([]string, error) {
 	return emails, rows.Err()
 }
 
-// MarkSent фиксирует факт отправки напоминания для события.
-// Повторный вызов для того же event_id игнорируется (ON CONFLICT DO NOTHING).
 func (r *ReminderRepository) MarkSent(eventID int64) error {
 	_, err := r.db.Exec(
 		`INSERT INTO event_reminders (event_id) VALUES ($1) ON CONFLICT DO NOTHING`,

@@ -68,7 +68,7 @@ type userResponse struct {
 	Role  string `json:"role"`
 }
 
-// Register godoc
+// Register
 // @Summary  Регистрация нового пользователя
 // @Tags     auth
 // @Accept   json
@@ -106,7 +106,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Login godoc
+// Login
 // @Summary  Вход в систему, возвращает JWT
 // @Tags     auth
 // @Accept   json
@@ -144,7 +144,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Me godoc
+// Me
 // @Summary  Профиль текущего пользователя
 // @Tags     auth
 // @Produce  json
@@ -166,7 +166,7 @@ func (h *UserHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// MyEvents godoc
+// MyEvents
 // @Summary  Встречи, в которых я создатель или участник
 // @Tags     auth
 // @Produce  json
@@ -196,7 +196,7 @@ func (h *UserHandler) MyEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// MyTasks godoc
+// MyTasks
 // @Summary  Задачи, назначенные на меня
 // @Tags     auth
 // @Produce  json
@@ -226,7 +226,7 @@ func (h *UserHandler) MyTasks(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// List godoc
+// List
 // @Summary  Список всех пользователей
 // @Tags     users
 // @Produce  json

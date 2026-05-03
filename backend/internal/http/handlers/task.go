@@ -52,7 +52,7 @@ type taskResponse struct {
 	CreatedAt   string  `json:"created_at"`
 }
 
-// Create godoc
+// Create
 // @Summary  Создать задачу во встрече
 // @Tags     tasks
 // @Accept   json
@@ -107,7 +107,7 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toTaskResponse(*task))
 }
 
-// Get godoc
+// Get
 // @Summary  Получить задачу по id
 // @Tags     tasks
 // @Produce  json
@@ -133,7 +133,7 @@ func (h *TaskHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toTaskResponse(*task))
 }
 
-// Update godoc
+// Update
 // @Summary  Обновить задачу
 // @Tags     tasks
 // @Accept   json
@@ -191,7 +191,7 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toTaskResponse(*task))
 }
 
-// Delete godoc
+// Delete
 // @Summary  Удалить задачу
 // @Tags     tasks
 // @Security BearerAuth
@@ -222,7 +222,7 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// List godoc
+// List
 // @Summary  Все задачи встречи
 // @Tags     tasks
 // @Produce  json

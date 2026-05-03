@@ -49,8 +49,21 @@ definitions:
       end_time:
         example: "2026-05-01T11:00:00Z"
         type: string
+      location:
+        example: Переговорная №2
+        type: string
+      meeting_url:
+        example: https://meet.google.com/abc-defg-hij
+        type: string
       start_time:
         example: "2026-05-01T10:00:00Z"
+        type: string
+      status:
+        enum:
+        - scheduled
+        - cancelled
+        - completed
+        example: scheduled
         type: string
       title:
         example: Планирование спринта
@@ -88,7 +101,13 @@ definitions:
         type: string
       id:
         type: integer
+      location:
+        type: string
+      meeting_url:
+        type: string
       start_time:
+        type: string
+      status:
         type: string
       title:
         type: string
@@ -131,6 +150,8 @@ definitions:
       id:
         type: integer
       role:
+        type: string
+      rsvp_status:
         type: string
       user_id:
         type: integer
@@ -196,7 +217,17 @@ definitions:
         type: string
       end_time:
         type: string
+      location:
+        type: string
+      meeting_url:
+        type: string
       start_time:
+        type: string
+      status:
+        enum:
+        - scheduled
+        - cancelled
+        - completed
         type: string
       title:
         type: string
@@ -207,6 +238,15 @@ definitions:
         enum:
         - participant
         - responsible
+        type: string
+    type: object
+  handlers.updateRSVPRequest:
+    properties:
+      rsvp_status:
+        enum:
+        - pending
+        - accepted
+        - declined
         type: string
     type: object
   handlers.updateTaskRequest:
@@ -629,6 +669,47 @@ paths:
       security:
       - BearerAuth: []
       summary: Изменить роль участника
+      tags:
+      - participants
+  /events/{id}/participants/{participantId}/rsvp:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Participant ID
+        in: path
+        name: participantId
+        required: true
+        type: integer
+      - description: Статус RSVP
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateRSVPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.participantResponse'
+        "403":
+          description: permission denied
+          schema:
+            type: string
+        "404":
+          description: participant not found
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Ответить на приглашение (RSVP)
       tags:
       - participants
   /events/{id}/tasks:

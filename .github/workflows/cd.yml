@@ -30,6 +30,11 @@ jobs:
             docker stop backend frontend || true
             docker rm backend frontend || true
 
+            docker run --rm \
+              --network host \
+              -e POSTGRES_DSN="${POSTGRES_DSN}" \
+              ghcr.io/${REPO}/backend:${TAG} migrate
+
             docker run -d \
               --name backend \
               --network host \

@@ -48,7 +48,7 @@ type participantResponse struct {
 	CreatedAt  string `json:"created_at"`
 }
 
-// Add godoc
+// Add
 // @Summary  Добавить участника во встречу
 // @Tags     participants
 // @Accept   json
@@ -94,7 +94,7 @@ func (h *ParticipantHandler) Add(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toParticipantResponse(*participant))
 }
 
-// Update godoc
+// Update
 // @Summary  Изменить роль участника
 // @Tags     participants
 // @Accept   json
@@ -141,7 +141,7 @@ func (h *ParticipantHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toParticipantResponse(*participant))
 }
 
-// UpdateRSVP godoc
+// UpdateRSVP
 // @Summary  Ответить на приглашение (RSVP)
 // @Tags     participants
 // @Accept   json
@@ -188,7 +188,7 @@ func (h *ParticipantHandler) UpdateRSVP(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, toParticipantResponse(*participant))
 }
 
-// Remove godoc
+// Remove
 // @Summary  Удалить участника из встречи
 // @Tags     participants
 // @Security BearerAuth
@@ -219,7 +219,7 @@ func (h *ParticipantHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// List godoc
+// List
 // @Summary  Список участников встречи
 // @Tags     participants
 // @Produce  json

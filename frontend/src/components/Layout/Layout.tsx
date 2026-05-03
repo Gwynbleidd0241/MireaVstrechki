@@ -28,18 +28,19 @@ export function Layout({ children }: Props) {
         <div className="topbar__inner">
           <div className="topbar__brand">
             <div className="topbar__logo">M</div>
-            <span className="topbar__brand-name">MeetFlow</span>
+            <span className="topbar__brand-name">MireaVstrechki</span>
           </div>
 
           <nav className="topbar__nav">
             <NavLink to="/events">Мероприятия</NavLink>
+            <NavLink to="/calendar">Календарь</NavLink>
           </nav>
 
           <div className="topbar__user">
             <div className="topbar__user-info">
               <span className="topbar__email">{email}</span>
               <span className="topbar__role">
-                {role ? roleLabel[role] ?? role : ""}
+                {role ? (roleLabel[role] ?? role) : ""}
               </span>
             </div>
             <button onClick={handleLogout} className="topbar__logout">

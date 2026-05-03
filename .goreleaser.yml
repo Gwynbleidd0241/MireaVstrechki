@@ -6,8 +6,8 @@ builds:
   - id: backend
     dir: backend
     main: ./cmd/api
-    goos: [linux]
-    goarch: [amd64]
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
 
 release:
   github:

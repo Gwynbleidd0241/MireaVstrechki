@@ -634,6 +634,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/events/{id}/participants/{participantId}/rsvp": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "participants"
+                ],
+                "summary": "Ответить на приглашение (RSVP)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Participant ID",
+                        "name": "participantId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Статус RSVP",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.updateRSVPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.participantResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "permission denied",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "participant not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/events/{id}/tasks": {
             "get": {
                 "security": [
@@ -1168,9 +1232,26 @@ const docTemplate = `{
                     "type": "string",
                     "example": "2026-05-01T11:00:00Z"
                 },
+                "location": {
+                    "type": "string",
+                    "example": "Переговорная №2"
+                },
+                "meeting_url": {
+                    "type": "string",
+                    "example": "https://meet.google.com/abc-defg-hij"
+                },
                 "start_time": {
                     "type": "string",
                     "example": "2026-05-01T10:00:00Z"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "scheduled",
+                        "cancelled",
+                        "completed"
+                    ],
+                    "example": "scheduled"
                 },
                 "title": {
                     "type": "string",
@@ -1224,7 +1305,16 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "location": {
+                    "type": "string"
+                },
+                "meeting_url": {
+                    "type": "string"
+                },
                 "start_time": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "title": {
@@ -1289,6 +1379,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "role": {
+                    "type": "string"
+                },
+                "rsvp_status": {
                     "type": "string"
                 },
                 "user_id": {
@@ -1387,8 +1480,22 @@ const docTemplate = `{
                 "end_time": {
                     "type": "string"
                 },
+                "location": {
+                    "type": "string"
+                },
+                "meeting_url": {
+                    "type": "string"
+                },
                 "start_time": {
                     "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "scheduled",
+                        "cancelled",
+                        "completed"
+                    ]
                 },
                 "title": {
                     "type": "string"
@@ -1403,6 +1510,19 @@ const docTemplate = `{
                     "enum": [
                         "participant",
                         "responsible"
+                    ]
+                }
+            }
+        },
+        "handlers.updateRSVPRequest": {
+            "type": "object",
+            "properties": {
+                "rsvp_status": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "accepted",
+                        "declined"
                     ]
                 }
             }

@@ -58,7 +58,7 @@ type eventResponse struct {
 	CreatedAt   string `json:"created_at"`
 }
 
-// Create godoc
+// Create
 // @Summary  Создать встречу
 // @Tags     events
 // @Accept   json
@@ -113,7 +113,7 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toEventResponse(*event))
 }
 
-// Get godoc
+// Get
 // @Summary  Получить встречу по id
 // @Tags     events
 // @Produce  json
@@ -138,7 +138,7 @@ func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toEventResponse(*event))
 }
 
-// Update godoc
+// Update
 // @Summary  Обновить встречу
 // @Tags     events
 // @Accept   json
@@ -202,7 +202,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toEventResponse(*event))
 }
 
-// Delete godoc
+// Delete
 // @Summary  Удалить встречу
 // @Tags     events
 // @Security BearerAuth
@@ -232,7 +232,7 @@ func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// List godoc
+// List
 // @Summary  Список всех встреч
 // @Tags     events
 // @Produce  json

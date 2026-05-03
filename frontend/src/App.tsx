@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout/Layout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { CalendarPage } from "./pages/CalendarPage/CalendarPage";
 import { EventDetailPage } from "./pages/EventDetailPage/EventDetailPage";
 import { EventsPage } from "./pages/EventsPage/EventsPage";
 import { LoginPage } from "./pages/LoginPage/LoginPage";
@@ -41,6 +42,19 @@ function AppRoutes() {
             isAuth ? (
               <Layout>
                 <EventDetailPage />
+              </Layout>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+
+        <Route
+          path="/calendar"
+          element={
+            isAuth ? (
+              <Layout>
+                <CalendarPage />
               </Layout>
             ) : (
               <Navigate to="/login" />

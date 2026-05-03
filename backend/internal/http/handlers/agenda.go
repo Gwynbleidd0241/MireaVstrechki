@@ -49,7 +49,7 @@ type agendaItemResponse struct {
 	CreatedAt       string `json:"created_at"`
 }
 
-// Add godoc
+// Add
 // @Summary  Добавить пункт повестки
 // @Tags     agenda
 // @Accept   json
@@ -96,7 +96,7 @@ func (h *AgendaHandler) Add(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toAgendaItemResponse(*item))
 }
 
-// Update godoc
+// Update
 // @Summary  Обновить пункт повестки
 // @Tags     agenda
 // @Accept   json
@@ -146,7 +146,7 @@ func (h *AgendaHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toAgendaItemResponse(*item))
 }
 
-// Delete godoc
+// Delete
 // @Summary  Удалить пункт повестки
 // @Tags     agenda
 // @Security BearerAuth
@@ -177,7 +177,7 @@ func (h *AgendaHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// List godoc
+// List
 // @Summary  Список пунктов повестки
 // @Tags     agenda
 // @Produce  json
