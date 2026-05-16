@@ -35,6 +35,9 @@ func New(
 	taskHandler := handlers.NewTaskHandler(taskService, logger)
 	participantHandler := handlers.NewParticipantHandler(participantService, logger)
 	agendaHandler := handlers.NewAgendaHandler(agendaService, logger)
+	geoHandler := handlers.NewGeoHandler(cfg.Yandex.GeoKey)
+
+	mux.Handle("/geo/geocode", middleware.AuthMiddleware(cfg.Auth.JWTSecret, http.HandlerFunc(geoHandler.Geocode)))
 
 	mux.Handle("/register", http.HandlerFunc(userHandler.Register))
 	mux.Handle("/login", http.HandlerFunc(userHandler.Login))
@@ -146,7 +149,7 @@ func New(
 	return &Server{
 		httpServer: &http.Server{
 			Addr:    ":" + cfg.Server.Port,
-			Handler: middleware.CORSMiddleware(mux),
+			Handler: middleware.LoggerMiddleware(logger)(middleware.CORSMiddleware(mux)),
 		},
 		logger: logger,
 	}

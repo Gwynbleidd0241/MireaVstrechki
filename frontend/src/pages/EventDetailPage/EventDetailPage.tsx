@@ -26,6 +26,7 @@ import {
   updateAgendaItem,
 } from "../../api/agenda";
 import { getUsers, User } from "../../api/users";
+import { geocode, GeocodeResult } from "../../api/geo";
 import { useAuth } from "../../contexts/AuthContext";
 import "./EventDetailPage.css";
 
@@ -76,6 +77,7 @@ export function EventDetailPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [geoResult, setGeoResult] = useState<GeocodeResult | null>(null);
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
@@ -111,6 +113,9 @@ export function EventDetailPage() {
         setParticipants(pp);
         setAgenda(ag);
         setUsers(us);
+        if (ev.location) {
+          geocode(ev.location).then(setGeoResult).catch(() => {});
+        }
       })
       .catch((err) =>
         setError(friendlyError(err, "Не удалось загрузить встречу")),
@@ -317,7 +322,20 @@ export function EventDetailPage() {
           {new Date(event.end_time).toLocaleString()}
         </p>
         {event.location && (
-          <p className="event-detail-meta">📍 {event.location}</p>
+          <p className="event-detail-meta">
+            {geoResult ? (
+              <a
+                href={geoResult.map_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="location-link"
+              >
+                {event.location}
+              </a>
+            ) : (
+              <>{event.location}</>
+            )}
+          </p>
         )}
         {event.meeting_url && (
           <p className="event-detail-meta">

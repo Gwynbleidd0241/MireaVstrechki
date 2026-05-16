@@ -7,6 +7,7 @@ type Config struct {
 	Postgres Postgres
 	Auth     Auth
 	SMTP     SMTP
+	Yandex   Yandex
 }
 
 type Server struct {
@@ -27,6 +28,10 @@ type SMTP struct {
 	Username string
 	Password string
 	From     string
+}
+
+type Yandex struct {
+	GeoKey string
 }
 
 func Load() *Config {
@@ -58,6 +63,10 @@ func Load() *Config {
 	}
 	if from := os.Getenv("SMTP_FROM"); from != "" {
 		cfg.SMTP.From = from
+	}
+
+	if key := os.Getenv("YANDEX_GEO_KEY"); key != "" {
+		cfg.Yandex.GeoKey = key
 	}
 
 	return cfg

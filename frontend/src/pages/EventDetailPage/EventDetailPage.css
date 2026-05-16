@@ -54,6 +54,17 @@
     margin: 0;
 }
 
+.location-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+}
+
+.location-link:hover {
+    color: #4f46e5;
+}
+
 .event-detail-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
