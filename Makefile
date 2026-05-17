@@ -1,5 +1,7 @@
-.PHONY: up down run migrate seed test test-integration fuzz front-start db-up docs docs-serve
+.PHONY: up down run migrate seed test test-integration fuzz front-start db-up docs docs-serve load-test
 DSN ?= postgres://postgres:postgres@localhost:5432/meeting_service?sslmode=disable
+LOGIN    ?= admin@demo.local
+PASSWORD ?= password
 
 up:
 	docker compose up --build
@@ -28,6 +30,8 @@ fuzz:
 	cd backend && go test -run=^$$ -fuzz=FuzzIsValidTaskStatus -fuzztime=10s ./internal/service
 	cd backend && go test -run=^$$ -fuzz=FuzzEventIDFromPath -fuzztime=10s ./internal/http/handlers
 
+load-test:
+	k6 run -e BASE_URL=http://localhost:8080 -e LOGIN=$(LOGIN) -e PASSWORD=$(PASSWORD) load-test/script.js
 
 front-start:
 	cd frontend && npm start

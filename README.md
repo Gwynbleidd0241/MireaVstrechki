@@ -84,3 +84,8 @@ Swagger-доки: `make docs-serve` → `http://localhost:4000`
 make test   # unit-тесты
 make fuzz   # фаззинг (10 секунд на каждый)
 ```
+
+```bash
+make load-test                                       # дефолт: admin@demo.local / password
+make load-test LOGIN=sergey.lazarenko.0241@mail.ru PASSWORD=sereginrparolik   # свой пользователь
+```
