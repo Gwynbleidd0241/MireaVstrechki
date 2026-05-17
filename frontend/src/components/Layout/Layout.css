@@ -129,10 +129,36 @@
 
 @media (max-width: 720px) {
     .topbar__inner {
-        padding: 0 16px;
-        gap: 16px;
+        padding: 0 12px;
+        gap: 8px;
     }
+
     .topbar__brand-name { display: none; }
     .topbar__user-info { display: none; }
-    .app-main { padding: 20px 16px; }
+
+    .topbar__nav a {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+
+    .topbar__logout {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .app-main {
+        padding: 16px 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    .topbar__nav a {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    .topbar__logout {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
 }

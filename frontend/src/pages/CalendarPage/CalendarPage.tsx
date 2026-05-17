@@ -92,6 +92,13 @@ export function CalendarPage() {
     setCurrent({ year: d.getFullYear(), month: d.getMonth() });
   }
 
+  const monthEvents = events
+    .filter((e) => {
+      const d = new Date(e.start_time);
+      return d.getFullYear() === year && d.getMonth() === month;
+    })
+    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
   return (
     <div className="calendar-page">
       <div className="calendar-header">
@@ -104,20 +111,8 @@ export function CalendarPage() {
           <button onClick={goToday} className="cal-btn cal-btn--today">
             Сегодня
           </button>
-          <button
-            onClick={prevMonth}
-            className="cal-btn cal-btn--nav"
-            aria-label="Предыдущий месяц"
-          >
-            ‹
-          </button>
-          <button
-            onClick={nextMonth}
-            className="cal-btn cal-btn--nav"
-            aria-label="Следующий месяц"
-          >
-            ›
-          </button>
+          <button onClick={prevMonth} className="cal-btn cal-btn--nav" aria-label="Предыдущий месяц">‹</button>
+          <button onClick={nextMonth} className="cal-btn cal-btn--nav" aria-label="Следующий месяц">›</button>
         </div>
       </div>
 
@@ -125,11 +120,8 @@ export function CalendarPage() {
 
       <div className="calendar-grid">
         {DAY_NAMES.map((name) => (
-          <div key={name} className="calendar-grid__dayname">
-            {name}
-          </div>
+          <div key={name} className="calendar-grid__dayname">{name}</div>
         ))}
-
         {cells.map((day, idx) => (
           <div
             key={idx}
@@ -147,10 +139,7 @@ export function CalendarPage() {
                       title={`${event.title} — ${new Date(event.start_time).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })}`}
                     >
                       <span className="cal-event__time">
-                        {new Date(event.start_time).toLocaleTimeString("ru", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(event.start_time).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       <span className="cal-event__title">{event.title}</span>
                     </Link>
@@ -160,6 +149,31 @@ export function CalendarPage() {
             )}
           </div>
         ))}
+      </div>
+
+      <div className="cal-list">
+        {monthEvents.length === 0 ? (
+          <p className="empty-text">Мероприятий в этом месяце нет</p>
+        ) : (
+          monthEvents.map((event) => {
+            const d = new Date(event.start_time);
+            return (
+              <Link key={event.id} to={`/events/${event.id}`} className={`cal-list__item cal-list__item--${event.status}`}>
+                <div className="cal-list__date">
+                  <span className="cal-list__day">{d.getDate()}</span>
+                  <span className="cal-list__weekday">{d.toLocaleDateString("ru", { weekday: "short" })}</span>
+                </div>
+                <div className="cal-list__body">
+                  <div className="cal-list__title">{event.title}</div>
+                  <div className="cal-list__time">
+                    {d.toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })} —{" "}
+                    {new Date(event.end_time).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })}
+                  </div>
+                </div>
+              </Link>
+            );
+          })
+        )}
       </div>
     </div>
   );

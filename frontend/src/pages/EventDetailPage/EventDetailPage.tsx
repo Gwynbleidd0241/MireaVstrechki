@@ -78,6 +78,7 @@ export function EventDetailPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [geoResult, setGeoResult] = useState<GeocodeResult | null>(null);
+  const [activeTab, setActiveTab] = useState<"tasks" | "participants" | "agenda">("tasks");
 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
@@ -382,8 +383,14 @@ export function EventDetailPage() {
         )}
       </header>
 
+      <div className="mobile-tabs">
+        <button className={activeTab === "tasks" ? "mobile-tab mobile-tab--active" : "mobile-tab"} onClick={() => setActiveTab("tasks")}>Задачи</button>
+        <button className={activeTab === "participants" ? "mobile-tab mobile-tab--active" : "mobile-tab"} onClick={() => setActiveTab("participants")}>Участники</button>
+        <button className={activeTab === "agenda" ? "mobile-tab mobile-tab--active" : "mobile-tab"} onClick={() => setActiveTab("agenda")}>Повестка</button>
+      </div>
+
       <div className="event-detail-grid">
-        <section className="panel">
+        <section className={`panel${activeTab !== "tasks" ? " panel--hidden-mobile" : ""}`}>
           <h2>Задачи</h2>
 
           {tasks.length === 0 ? (
@@ -469,7 +476,7 @@ export function EventDetailPage() {
           {taskError && <p className="form-error">{taskError}</p>}
         </section>
 
-        <section className="panel">
+        <section className={`panel${activeTab !== "participants" ? " panel--hidden-mobile" : ""}`}>
           <h2>Участники</h2>
 
           {participants.length === 0 ? (
@@ -543,7 +550,7 @@ export function EventDetailPage() {
           {participantError && <p className="form-error">{participantError}</p>}
         </section>
 
-        <section className="panel">
+        <section className={`panel${activeTab !== "agenda" ? " panel--hidden-mobile" : ""}`}>
           <h2>Повестка</h2>
           {agenda.length === 0 ? (
             <p className="empty-text">Повестка пока пустая</p>
