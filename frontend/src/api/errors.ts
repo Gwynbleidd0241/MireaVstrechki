@@ -1,12 +1,12 @@
 const messages: Record<string, string> = {
   "permission denied": "Недостаточно прав",
-  "unauthorized": "Сессия истекла, войдите заново",
+  unauthorized: "Сессия истекла, войдите заново",
   "invalid json": "Ошибка формата данных",
   "invalid email": "Введите корректный email",
   "password too short": "Пароль должен быть не менее 8 символов",
   "password too long": "Пароль слишком длинный",
   "invalid role": "Неверная роль",
-  "invalid email or password": "Неверный email или пароль",
+  "invalid credentials": "Неверный email или пароль",
   "event title required": "Введите название встречи",
   "event title too long": "Название встречи слишком длинное",
   "event description too long": "Описание слишком длинное",
@@ -32,7 +32,10 @@ const messages: Record<string, string> = {
   "invalid due_date": "Некорректный дедлайн",
 };
 
-export function friendlyError(err: unknown, fallback = "Что-то пошло не так"): string {
+export function friendlyError(
+  err: unknown,
+  fallback = "Что-то пошло не так",
+): string {
   if (err instanceof Error) {
     const key = err.message.trim().toLowerCase();
     return messages[key] || fallback;
