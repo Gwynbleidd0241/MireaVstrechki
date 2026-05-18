@@ -34,6 +34,6 @@ func buildInviteBody(data InviteData) string {
 		body += fmt.Sprintf("\n Ссылка: %s", data.MeetingURL)
 	}
 
-	body += "\n\nЭто автоматическое уведомление от Meeting Service."
+	body += "\n\nЭто автоматическое уведомление от MireaVstrechki."
 	return body
 }
