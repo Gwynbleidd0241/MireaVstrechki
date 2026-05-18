@@ -27,8 +27,16 @@ export function EventsPage() {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [meetingUrl, setMeetingUrl] = useState("");
-  const [startTime, setStartTime] = useState("2026-04-27T10:00");
-  const [endTime, setEndTime] = useState("2026-04-27T11:00");
+  const [startTime, setStartTime] = useState(() => {
+    const d = new Date();
+    d.setHours(10, 0, 0, 0);
+    return d.toISOString().slice(0, 16);
+  });
+  const [endTime, setEndTime] = useState(() => {
+    const d = new Date();
+    d.setHours(11, 0, 0, 0);
+    return d.toISOString().slice(0, 16);
+  });
   const [error, setError] = useState("");
 
   async function loadEvents() {
