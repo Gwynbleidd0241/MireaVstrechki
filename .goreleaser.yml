@@ -12,4 +12,4 @@ builds:
 release:
   github:
     owner: "{{ .Env.GITHUB_REPOSITORY_OWNER }}"
-    name: "{{ .ProjectName }}"
+    name: "{{ .Env.GITHUB_REPOSITORY_NAME }}"
