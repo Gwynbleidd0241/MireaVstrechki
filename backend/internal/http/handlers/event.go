@@ -240,7 +240,23 @@ func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // @Success  200 {array} eventResponse
 // @Router   /events [get]
 func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
-	events, err := h.eventService.List()
+	claims, ok := r.Context().Value(middleware.UserClaimsKey).(*auth.Claims)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var (
+		events []model.Event
+		err    error
+	)
+
+	if claims.Role == "admin" {
+		events, err = h.eventService.List()
+	} else {
+		events, err = h.eventService.ListForUser(claims.UserID)
+	}
+
 	if err != nil {
 		h.logger.Error("failed to list events", zap.Error(err))
 		http.Error(w, "failed to list events", http.StatusInternalServerError)
