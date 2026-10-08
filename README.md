@@ -58,12 +58,6 @@ frontend/
     components/      — переиспользуемые компоненты
 ```
 
-## API
-
-Swagger-доки: `make docs-serve` → `http://localhost:4000`
-
-Авторизация — Bearer-токен, который возвращает `POST /login`.
-
 ## Деплой
 
 Пуш тега `v*` запускает GitHub Actions: собирает бинари через GoReleaser, пушит Docker-образы в GHCR и деплоит на VPS по SSH.
